@@ -1,36 +1,37 @@
+// pages/user/BuatLaporan.jsx
 import { useState } from 'react'
-import { CheckCircle, ChevronRight, Road, Home, Lightbulb, Shield, Upload, MapPin, FileText, ArrowLeft, ArrowRight } from 'lucide-react'
+import { CheckCircle, Road, Home, Lightbulb, Shield, Upload, MapPin, ArrowLeft, ArrowRight } from 'lucide-react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 
 const STEPS = ['Pilih Kategori', 'Unggah Bukti', 'Lokasi Presisi', 'Detail Laporan']
 
 const CATEGORIES = [
-  { id: 'jalan',    label: 'Jalan & Trotoar',      Icon: Road    },
-  { id: 'banjir',   label: 'Banjir & Drainase',    Icon: Home    },
-  { id: 'lampu',    label: 'Penerangan Jalan',      Icon: Lightbulb },
-  { id: 'keamanan', label: 'Keamanan & Kriminal',   Icon: Shield  },
+  { id: 'jalan',    label: 'Jalan & Trotoar',    Icon: Road      },
+  { id: 'banjir',   label: 'Banjir & Drainase',  Icon: Home      },
+  { id: 'lampu',    label: 'Penerangan Jalan',   Icon: Lightbulb },
+  { id: 'keamanan', label: 'Keamanan & Kriminal', Icon: Shield    },
 ]
 
 // ── Step 1 ───────────────────────────────────────────────────────────────────
 function StepKategori({ selected, onSelect }) {
   return (
     <div>
-      <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">Apa yang ingin Anda laporkan?</h2>
-      <p className="text-sm text-gray-500 mb-8">Pilih salah satu kategori infrastruktur atau keamanan di bawah ini.</p>
-      <div className="grid grid-cols-2 gap-4">
+      <h2 className="text-xl sm:text-2xl font-display font-bold text-gray-900 mb-1">Apa yang ingin Anda laporkan?</h2>
+      <p className="text-sm text-gray-500 mb-6">Pilih salah satu kategori infrastruktur atau keamanan di bawah ini.</p>
+      <div className="grid grid-cols-2 gap-3">
         {CATEGORIES.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => onSelect(id)}
-            className={`p-8 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-150 ${
+            className={`p-4 sm:p-6 rounded-2xl border-2 flex flex-col items-center gap-2 sm:gap-3 transition-all duration-150 ${
               selected === id
                 ? 'border-primary bg-primary-50'
                 : 'border-gray-200 bg-white hover:border-primary-200 hover:bg-primary-50/40'
             }`}
           >
-            <Icon size={30} className="text-primary" />
-            <span className="text-sm font-display font-semibold text-gray-800 text-center">{label}</span>
+            <Icon size={24} className="text-primary" />
+            <span className="text-xs sm:text-sm font-display font-semibold text-gray-800 text-center">{label}</span>
           </button>
         ))}
       </div>
@@ -47,16 +48,16 @@ function StepUnggah({ files, onFiles }) {
 
   return (
     <div>
-      <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">Unggah Bukti</h2>
+      <h2 className="text-xl sm:text-2xl font-display font-bold text-gray-900 mb-1">Unggah Bukti</h2>
       <p className="text-sm text-gray-500 mb-6">Tambahkan foto atau video sebagai bukti laporan.</p>
 
       <div
         onDrop={handleDrop}
         onDragOver={e => e.preventDefault()}
-        className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:border-primary transition-colors cursor-pointer"
+        className="border-2 border-dashed border-gray-200 rounded-2xl p-8 sm:p-12 text-center hover:border-primary transition-colors cursor-pointer"
         onClick={() => document.getElementById('file-input').click()}
       >
-        <Upload size={32} className="text-gray-300 mx-auto mb-3" />
+        <Upload size={28} className="text-gray-300 mx-auto mb-3" />
         <p className="text-sm font-display font-semibold text-gray-600">Seret & lepas atau klik untuk unggah</p>
         <p className="text-xs text-gray-400 mt-1">PNG, JPG, MP4 — maks. 10MB</p>
         <input
@@ -68,7 +69,7 @@ function StepUnggah({ files, onFiles }) {
       {files.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mt-4">
           {files.map((f, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div key={i} className="aspect-square rounded-xl bg-gray-100 overflow-hidden">
               <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
@@ -82,11 +83,10 @@ function StepUnggah({ files, onFiles }) {
 function StepLokasi({ location, onChange }) {
   return (
     <div>
-      <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">Lokasi Presisi</h2>
+      <h2 className="text-xl sm:text-2xl font-display font-bold text-gray-900 mb-1">Lokasi Presisi</h2>
       <p className="text-sm text-gray-500 mb-6">Tandai lokasi kejadian di peta atau isi secara manual.</p>
 
-      {/* Map placeholder */}
-      <div className="w-full h-56 rounded-2xl bg-gray-800 flex items-center justify-center mb-5">
+      <div className="w-full h-48 sm:h-56 rounded-2xl bg-gray-800 flex items-center justify-center mb-5">
         <div className="text-center text-gray-500">
           <MapPin size={28} className="mx-auto mb-1 opacity-40" />
           <p className="text-xs">Klik untuk pilih lokasi di peta</p>
@@ -112,7 +112,7 @@ function StepLokasi({ location, onChange }) {
 function StepDetail({ detail, onChange }) {
   return (
     <div>
-      <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">Detail Laporan</h2>
+      <h2 className="text-xl sm:text-2xl font-display font-bold text-gray-900 mb-1">Detail Laporan</h2>
       <p className="text-sm text-gray-500 mb-6">Berikan informasi tambahan agar laporan Anda lebih mudah ditindaklanjuti.</p>
 
       <div className="space-y-4">
@@ -148,16 +148,16 @@ function StepDetail({ detail, onChange }) {
 
 // ── Main wizard ───────────────────────────────────────────────────────────────
 export default function BuatLaporan() {
-  const [step, setStep]         = useState(0)
-  const [category, setCategory] = useState('')
-  const [files, setFiles]       = useState([])
-  const [location, setLocation] = useState('')
-  const [detail, setDetail]     = useState({ title: '', desc: '', urgency: '' })
+  const [step, setStep]           = useState(0)
+  const [category, setCategory]   = useState('')
+  const [files, setFiles]         = useState([])
+  const [location, setLocation]   = useState('')
+  const [detail, setDetail]       = useState({ title: '', desc: '', urgency: '' })
   const [submitted, setSubmitted] = useState(false)
 
   const canNext = [
     category !== '',
-    true, // files optional
+    true,
     location !== '',
     detail.title !== '' && detail.urgency !== '',
   ]
@@ -188,9 +188,23 @@ export default function BuatLaporan() {
     <div className="min-h-screen flex flex-col bg-cream">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 w-full flex-1 flex gap-8">
+      {/* ── Mobile step indicator ── */}
+      <div className="md:hidden px-4 pt-6 pb-2">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-display font-bold text-primary">{STEPS[step]}</p>
+          <p className="text-xs text-gray-400">{step + 1} / {STEPS.length}</p>
+        </div>
+        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-300"
+            style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          />
+        </div>
+      </div>
 
-        {/* ── Sidebar stepper ── */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 w-full flex-1 flex gap-8">
+
+        {/* ── Sidebar stepper (desktop only) ── */}
         <aside className="w-44 flex-shrink-0 hidden md:block">
           <div className="card p-5 sticky top-24">
             <p className="text-xs font-display font-bold text-gray-400 uppercase tracking-widest mb-4">
@@ -218,14 +232,14 @@ export default function BuatLaporan() {
         </aside>
 
         {/* ── Content ── */}
-        <div className="flex-1 card p-8 md:p-10">
+        <div className="flex-1 card p-5 sm:p-8 md:p-10">
           {step === 0 && <StepKategori selected={category} onSelect={setCategory} />}
           {step === 1 && <StepUnggah files={files} onFiles={setFiles} />}
           {step === 2 && <StepLokasi location={location} onChange={setLocation} />}
           {step === 3 && <StepDetail detail={detail} onChange={setDetail} />}
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-10 pt-6 border-t border-gray-100">
+          <div className="flex items-center justify-between mt-8 pt-5 border-t border-gray-100">
             <button
               onClick={() => setStep(s => s - 1)}
               disabled={step === 0}

@@ -1,3 +1,5 @@
+// pages/user/Profile.jsx
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Share2, TrendingUp, ThumbsUp, CheckCircle, Award, Eye, Users, Medal, Bell, Mail, ChevronRight, User } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -5,14 +7,26 @@ import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 
 const BADGES = [
-  { id: 1, icon: Award,  label: 'Pionir Kota',   sub: '10 Laporan Awal', unlocked: true  },
-  { id: 2, icon: Users,  label: 'Warga Aktif',   sub: 'Login 30 Hari',   unlocked: true  },
-  { id: 3, icon: Eye,    label: 'Mata Elang',     sub: 'Deteksi Kerusakan', unlocked: true },
-  { id: 4, icon: Medal,  label: 'Pahlawan Kota', sub: 'Locked',          unlocked: false },
+  { id: 1, icon: Award,  label: 'Pionir Kota',   sub: '10 Laporan Awal',   unlocked: true  },
+  { id: 2, icon: Users,  label: 'Warga Aktif',   sub: 'Login 30 Hari',     unlocked: true  },
+  { id: 3, icon: Eye,    label: 'Mata Elang',     sub: 'Deteksi Kerusakan', unlocked: true  },
+  { id: 4, icon: Medal,  label: 'Pahlawan Kota', sub: 'Locked',            unlocked: false },
 ]
 
+function ToggleSwitch({ defaultOn }) {
+  const [on, setOn] = useState(defaultOn)
+  return (
+    <button
+      onClick={() => setOn(v => !v)}
+      className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${on ? 'bg-primary' : 'bg-gray-200'}`}
+    >
+      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+    </button>
+  )
+}
+
 export default function Profile() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen flex flex-col bg-cream">
@@ -53,15 +67,15 @@ export default function Profile() {
         </div>
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { icon: TrendingUp,   value: '42',  label: 'Total Laporan',    sub: '↑ +5 bulan ini' },
-            { icon: ThumbsUp,     value: '158', label: 'Dukungan Diterima', sub: 'Dari warga sekitar' },
-            { icon: CheckCircle,  value: '36',  label: 'Laporan Selesai',  sub: '85% penyelesaian' },
+            { icon: TrendingUp,  value: '42',  label: 'Total Laporan',     sub: '↑ +5 bulan ini'    },
+            { icon: ThumbsUp,    value: '158', label: 'Dukungan Diterima', sub: 'Dari warga sekitar' },
+            { icon: CheckCircle, value: '36',  label: 'Laporan Selesai',   sub: '85% penyelesaian'  },
           ].map(({ icon: Icon, value, label, sub }) => (
-            <div key={label} className="card p-5">
+            <div key={label} className="card p-4 sm:p-5">
               <Icon size={18} className="text-gray-400 mb-2" />
-              <p className="text-3xl font-display font-extrabold text-gray-900">{value}</p>
+              <p className="text-2xl sm:text-3xl font-display font-extrabold text-gray-900">{value}</p>
               <p className="text-xs font-display font-semibold text-gray-500 mt-0.5">{label}</p>
               <p className="text-xs text-primary mt-1">{sub}</p>
             </div>
@@ -72,7 +86,7 @@ export default function Profile() {
           {/* ── Badges ── */}
           <div className="md:col-span-2 card p-6">
             <h3 className="text-base font-display font-bold text-gray-900 mb-4">Lencana Pencapaian</h3>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {BADGES.map(({ id, icon: Icon, label, sub, unlocked }) => (
                 <div key={id} className={`flex flex-col items-center gap-1.5 p-3 rounded-xl text-center ${
                   unlocked ? 'bg-primary-50' : 'bg-gray-50'
@@ -134,14 +148,14 @@ export default function Profile() {
               },
             ].map(item => (
               <div key={item.title} className="flex items-center justify-between py-4 gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-display font-semibold text-gray-800">{item.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
                 </div>
                 {item.type === 'toggle' ? (
                   <ToggleSwitch defaultOn={item.defaultOn} />
                 ) : (
-                  <button className="text-xs font-display font-semibold text-primary flex items-center gap-1">
+                  <button className="text-xs font-display font-semibold text-primary flex items-center gap-1 shrink-0">
                     Kelola <ChevronRight size={12} />
                   </button>
                 )}
@@ -161,18 +175,3 @@ export default function Profile() {
     </div>
   )
 }
-
-function ToggleSwitch({ defaultOn }) {
-  const [on, setOn] = useState(defaultOn)
-  return (
-    <button
-      onClick={() => setOn(v => !v)}
-      className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${on ? 'bg-primary' : 'bg-gray-200'}`}
-    >
-      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
-    </button>
-  )
-}
-
-// useState is used inside ToggleSwitch — need import
-import { useState } from 'react'

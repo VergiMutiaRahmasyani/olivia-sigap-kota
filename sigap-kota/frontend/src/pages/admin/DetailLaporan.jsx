@@ -1,3 +1,4 @@
+// pages/admin/DetailLaporan.jsx
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -8,7 +9,7 @@ import {
 } from 'lucide-react'
 import AdminLayout from '../../components/admin/AdminLayout'
 
-// ── Dummy data ─────────────────────────────────────────────────────────────
+// ── Dummy data ──────────────────────────────────────────────────────────────
 const REPORT_DATA = {
   id: 'REP-8821',
   status: 'kritis',
@@ -31,7 +32,7 @@ const INITIAL_COMMENTS = [
     initials: 'BS',
     time: '18 Mei 2025, 14:45',
     text: 'Lubang ini sudah ada sejak 2 minggu lalu, sangat berbahaya di malam hari karena penerangan jalan minim.',
-    status: 'publik', // publik | hidden | irrelevant
+    status: 'publik',
   },
   {
     id: 2,
@@ -81,7 +82,7 @@ export default function DetailLaporan() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const report = REPORT_DATA // in real app: fetch by id
+  const report = REPORT_DATA
   const [waNumber, setWaNumber] = useState(report.instansiWA)
   const [waSent, setWaSent] = useState(false)
   const [comments, setComments] = useState(INITIAL_COMMENTS)
@@ -93,7 +94,6 @@ export default function DetailLaporan() {
   }
 
   function kirimWA() {
-    // Buka WA ke nomor pemerintah dengan pesan laporan
     const msg = encodeURIComponent(
       `🚨 LAPORAN PRIORITAS — SafeRoute\n\nSkor urgensi: ${report.score}/100 (Kritis)\nKategori: Jalan Rusak\nLokasi: ${report.location}\nWaktu: ${report.reportedAt} WIB\nLaporan serupa area: ${report.similarArea}\nValidasi warga: ${report.validations}\nLihat peta: https://${report.mapLink}`
     )
@@ -116,7 +116,7 @@ export default function DetailLaporan() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 page-enter">
+      <div className="space-y-6">
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-gray-400 font-display">
@@ -131,7 +131,7 @@ export default function DetailLaporan() {
         <div className="flex items-start justify-between">
           <h1 className="text-2xl font-display font-extrabold text-gray-900">Detail Laporan #{report.id}</h1>
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 text-sm font-display font-semibold border border-gray-200 rounded-xl px-4 py-2 hover:bg-gray-50 transition-colors">
+            <button className="flex items-center gap-2 text-sm font-display font-semibold border border-gray-200 rounded-xl px-4 py-2 hover:bg-gray-50 transition-colors bg-white">
               <Share2 size={15} /> Bagikan
             </button>
             <button className="flex items-center gap-2 text-sm font-display font-semibold bg-primary text-white rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors">
@@ -147,7 +147,7 @@ export default function DetailLaporan() {
           <div className="space-y-5">
 
             {/* Report card */}
-            <div className="card overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="bg-red-50 border-b border-red-100 p-5 flex justify-between items-start">
                 <div>
                   <span className="inline-block bg-red-500 text-white text-[10px] font-display font-bold px-2 py-0.5 rounded mb-2 tracking-wider">
@@ -204,7 +204,7 @@ export default function DetailLaporan() {
             </div>
 
             {/* Routing card */}
-            <div className="card p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
                   <Zap size={15} className="text-white" />
@@ -231,7 +231,7 @@ export default function DetailLaporan() {
             </div>
 
             {/* Moderasi Komentar */}
-            <div className="card overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                 <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
                   <MessageCircle size={15} className="text-gray-500" />
@@ -244,7 +244,6 @@ export default function DetailLaporan() {
 
               {comments.map((c, i) => (
                 <div key={c.id} className={`px-5 py-4 ${i > 0 ? 'border-t border-gray-100' : ''}`}>
-                  {/* Top row */}
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-[11px] font-display font-bold text-primary shrink-0">
@@ -258,31 +257,29 @@ export default function DetailLaporan() {
                     <StatusBadge status={c.status} />
                   </div>
 
-                  {/* Comment text */}
                   <p className={`text-sm leading-relaxed mb-3 ${c.status !== 'publik' ? 'text-gray-400 italic' : 'text-gray-700'}`}>
                     {c.text}
                   </p>
 
-                  {/* Actions */}
                   <div className="flex gap-2 flex-wrap">
                     {c.status === 'publik' && (
                       <>
-                        <ActionBtn icon={EyeOff}  label="Sembunyikan"   sub="Sembunyikan dari publik" onClick={() => { updateComment(c.id, 'hidden');     showToast('Komentar disembunyikan') }} />
-                        <ActionBtn icon={Trash2}   label="Hapus Permanen" sub="Hapus dari sistem"      variant="danger" onClick={() => deleteComment(c.id)} />
-                        <ActionBtn icon={XCircle}  label="Tidak Relevan"  sub="Beri label tidak terkait" onClick={() => { updateComment(c.id, 'irrelevant'); showToast('Komentar diberi label tidak relevan') }} />
+                        <ActionBtn icon={EyeOff}  label="Sembunyikan"    sub="Sembunyikan dari publik"   onClick={() => { updateComment(c.id, 'hidden');     showToast('Komentar disembunyikan') }} />
+                        <ActionBtn icon={Trash2}   label="Hapus Permanen" sub="Hapus dari sistem"         variant="danger" onClick={() => deleteComment(c.id)} />
+                        <ActionBtn icon={XCircle}  label="Tidak Relevan"  sub="Beri label tidak terkait"  onClick={() => { updateComment(c.id, 'irrelevant'); showToast('Komentar diberi label tidak relevan') }} />
                       </>
                     )}
                     {c.status === 'hidden' && (
                       <>
-                        <ActionBtn icon={Eye}    label="Tampilkan"     sub="Tampilkan ke publik"  onClick={() => { updateComment(c.id, 'publik'); showToast('Komentar ditampilkan') }} />
-                        <ActionBtn icon={Trash2} label="Hapus Permanen" sub="Hapus dari sistem"  variant="danger" onClick={() => deleteComment(c.id)} />
+                        <ActionBtn icon={Eye}    label="Tampilkan"      sub="Tampilkan ke publik"  onClick={() => { updateComment(c.id, 'publik'); showToast('Komentar ditampilkan') }} />
+                        <ActionBtn icon={Trash2} label="Hapus Permanen" sub="Hapus dari sistem"    variant="danger" onClick={() => deleteComment(c.id)} />
                       </>
                     )}
                     {c.status === 'irrelevant' && (
                       <>
-                        <ActionBtn icon={Eye}    label="Tampilkan"       sub="Tampilkan ke publik"        onClick={() => { updateComment(c.id, 'publik'); showToast('Komentar ditampilkan') }} />
-                        <ActionBtn icon={Trash2} label="Hapus Permanen"  sub="Hapus dari sistem"          variant="danger" onClick={() => deleteComment(c.id)} />
-                        <ActionBtn icon={Tag}    label="Batalkan Label"  sub="Hapus tanda tidak relevan"  variant="dark"   onClick={() => { updateComment(c.id, 'publik'); showToast('Label dibatalkan') }} />
+                        <ActionBtn icon={Eye}    label="Tampilkan"      sub="Tampilkan ke publik"       onClick={() => { updateComment(c.id, 'publik'); showToast('Komentar ditampilkan') }} />
+                        <ActionBtn icon={Trash2} label="Hapus Permanen" sub="Hapus dari sistem"         variant="danger" onClick={() => deleteComment(c.id)} />
+                        <ActionBtn icon={Tag}    label="Batalkan Label" sub="Hapus tanda tidak relevan" variant="dark"   onClick={() => { updateComment(c.id, 'publik'); showToast('Label dibatalkan') }} />
                       </>
                     )}
                   </div>
@@ -295,8 +292,7 @@ export default function DetailLaporan() {
           <div className="space-y-4">
 
             {/* WA Panel */}
-            <div className="card overflow-hidden">
-              {/* WA Header */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="bg-primary px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
@@ -310,19 +306,18 @@ export default function DetailLaporan() {
                 <MoreVertical size={18} className="text-white/70" />
               </div>
 
-              {/* Chat bubble */}
               <div className="bg-[#ECE5DD] p-3.5 min-h-[180px]">
                 <div className="bg-white rounded-xl rounded-tl-sm p-3 shadow-sm max-w-[95%]">
                   <p className="text-[10px] font-display font-extrabold text-red-500 uppercase tracking-wider flex items-center gap-1 mb-2">
                     <AlertTriangle size={11} /> LAPORAN PRIORITAS — SafeRoute
                   </p>
                   {[
-                    ['Skor urgensi', `${report.score}/100 (Kritis)`],
-                    ['Kategori', 'Jalan Rusak'],
-                    ['Lokasi', 'Jl. Soekarno-Hatta, Kedungwaru'],
-                    ['Waktu', `${report.reportedAt} WIB`],
+                    ['Skor urgensi',       `${report.score}/100 (Kritis)`],
+                    ['Kategori',           'Jalan Rusak'],
+                    ['Lokasi',             'Jl. Soekarno-Hatta, Kedungwaru'],
+                    ['Waktu',              `${report.reportedAt} WIB`],
                     ['Laporan serupa area', String(report.similarArea)],
-                    ['Validasi warga', String(report.validations)],
+                    ['Validasi warga',      String(report.validations)],
                   ].map(([k, v]) => (
                     <div key={k} className="flex gap-2 text-[11px] mb-0.5">
                       <span className="text-gray-400 w-28 shrink-0">{k}:</span>
@@ -338,7 +333,6 @@ export default function DetailLaporan() {
                 <div className="text-center text-[10px] text-gray-500 mt-2 font-semibold">HARI INI</div>
               </div>
 
-              {/* Input row */}
               <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-t border-gray-100">
                 <input
                   type="text"
@@ -358,14 +352,14 @@ export default function DetailLaporan() {
             </div>
 
             {/* Admin nav */}
-            <div className="card overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                 <p className="text-[10px] font-display font-extrabold text-gray-400 uppercase tracking-widest">Navigasi Admin</p>
               </div>
               {[
-                { icon: RefreshCw,  label: 'Update Status Laporan' },
-                { icon: UserCheck,  label: 'Delegasi Manual'        },
-                { icon: Phone,      label: 'Hubungi Instansi (PUPR)' },
+                { icon: RefreshCw, label: 'Update Status Laporan' },
+                { icon: UserCheck, label: 'Delegasi Manual' },
+                { icon: Phone,     label: 'Hubungi Instansi (PUPR)' },
               ].map(({ icon: Icon, label }) => (
                 <button
                   key={label}
@@ -394,7 +388,7 @@ export default function DetailLaporan() {
             </button>
 
             {/* Mini map */}
-            <div className="card overflow-hidden relative h-28">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden relative h-28">
               <div
                 className="absolute inset-0"
                 style={{
@@ -424,7 +418,7 @@ export default function DetailLaporan() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm font-display font-semibold px-4 py-3 rounded-xl flex items-center gap-2 shadow-xl z-50 animate-fade-in">
+        <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm font-display font-semibold px-4 py-3 rounded-xl flex items-center gap-2 shadow-xl z-50">
           <CheckCircle size={15} className="text-primary" /> {toast}
         </div>
       )}

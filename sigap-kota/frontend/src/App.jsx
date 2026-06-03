@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
-import { UserRoute, AdminRoute, GuestRoute, AdminGuestRoute } from './routes/Guards'
+import { UserRoute, AdminRoute, GuestRoute } from './routes/Guards'
 
 // ── Public / User pages ──
 import LandingPage          from './pages/user/LandingPage'
@@ -15,14 +15,12 @@ import EditProfile          from './pages/user/EditProfile'
 import Login                from './pages/user/Login'
 import Register             from './pages/user/Register'
 
-// ── Admin auth ──
-import AdminLogin           from './pages/admin/Login'
-
 // ── Admin pages ──
+import AdminPetaLaporan     from './pages/admin/PetaLaporan'
 import KelolaLaporan        from './pages/admin/KelolaLaporan'
-import AdminDetailLaporan   from './pages/admin/AdminDetailLaporan'
-import AdminWarga           from './pages/admin/Warga'
-import AdminPengaturan      from './pages/admin/Pengaturan'
+import AdminDetailLaporan   from './pages/admin/DetailLaporan'
+import KelolaInstansi       from './pages/admin/KelolaInstansi'
+import TambahInstansi       from './pages/admin/TambahInstansi'
 
 export default function App() {
   return (
@@ -42,11 +40,6 @@ export default function App() {
             <Route path="/daftar" element={<Register />} />
           </Route>
 
-          {/* ── Admin auth ── */}
-          <Route element={<AdminGuestRoute />}>
-            <Route path="/admin/masuk" element={<AdminLogin />} />
-          </Route>
-
           {/* ── User-only routes ── */}
           <Route element={<UserRoute />}>
             <Route path="/buat-laporan" element={<BuatLaporan />} />
@@ -56,11 +49,13 @@ export default function App() {
 
           {/* ── Admin routes ── */}
           <Route path="/admin" element={<AdminRoute />}>
-            <Route index                    element={<Navigate to="laporan" replace />} />
-            <Route path="laporan"           element={<KelolaLaporan />} />
-            <Route path="laporan/:id"       element={<AdminDetailLaporan />} />
-            <Route path="warga"             element={<AdminWarga />} />
-            <Route path="pengaturan"        element={<AdminPengaturan />} />
+            <Route index                        element={<Navigate to="laporan" replace />} />
+            <Route path="peta"                  element={<AdminPetaLaporan />} />
+            <Route path="laporan"               element={<KelolaLaporan />} />
+            <Route path="laporan/:id"           element={<AdminDetailLaporan />} />
+            <Route path="instansi"              element={<KelolaInstansi />} />
+            <Route path="instansi/tambah"       element={<TambahInstansi />} />
+            <Route path="instansi/:id/edit"     element={<TambahInstansi />} />
           </Route>
 
           {/* ── Catch-all ── */}
