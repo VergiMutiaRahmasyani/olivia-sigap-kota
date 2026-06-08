@@ -5,16 +5,16 @@ import Logo from './Logo'
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-100 mt-auto">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Brand */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Logo />
             <p className="text-xs text-gray-500 leading-relaxed max-w-xs">
               © 2026 SIGAP KOTA. Menuju Kota Berkelanjutan (SDG 11).
             </p>
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-3">
               <button className="text-gray-400 hover:text-primary transition-colors"><Globe size={16} /></button>
               <button className="text-gray-400 hover:text-primary transition-colors"><Share2 size={16} /></button>
               <button className="text-gray-400 hover:text-primary transition-colors"><Mail size={16} /></button>

@@ -1,72 +1,122 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Plus, Minus, Navigation, ChevronDown, ChevronUp } from 'lucide-react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
-
-const MOCK_REPORTS = [
-  {
-    id: 1, status: 'kritikal', title: 'Lubang Jalan Besar (Jalur TransJ)',
-    desc: 'Lubang sedalam 15cm di Jl. Gatot Subroto arah Semanggi membahayakan pengendara motor.',
-    location: 'Jakarta Selatan', distance: '0.8 km', time: '2 jam yang lalu',
-  },
-  {
-    id: 2, status: 'divalidasi', title: 'Saluran Air Tersumbat',
-    desc: 'Penumpukan sampah di gorong-gorong menyebabkan genangan saat hujan sedang.',
-    location: 'Jakarta Timur', distance: '3.2 km', time: '1 hari yang lalu',
-  },
-  {
-    id: 3, status: 'proses', title: 'Penerangan Jalan Mati',
-    desc: 'Sepanjang 50 meter area taman tidak memiliki penerangan aktif di malam hari.',
-    location: 'Jakarta Pusat', distance: '1.5 km', time: '5 jam yang lalu',
-  },
-]
+import { reports as reportsApi } from '../../services/api'
+import { useCategories } from '../../hooks/useApi'
+import MapSurabaya from '../../components/common/MapSurabaya'
 
 const STATUS_LABEL = {
   kritikal:   { label: 'Kritikal',        class: 'badge-kritikal'   },
   divalidasi: { label: 'Divalidasi',      class: 'badge-divalidasi' },
   proses:     { label: 'Sedang Diproses', class: 'badge-proses'     },
   selesai:    { label: 'Selesai',         class: 'badge-selesai'    },
+  // Fallback untuk status lain dari backend
+  pending:    { label: 'Menunggu',        class: 'badge-divalidasi' },
+  verified:   { label: 'Divalidasi',      class: 'badge-divalidasi' },
+  in_progress:{ label: 'Sedang Diproses', class: 'badge-proses'     },
+  resolved:   { label: 'Selesai',         class: 'badge-selesai'    },
+  critical:   { label: 'Kritikal',        class: 'badge-kritikal'   },
 }
 
-const CATEGORIES = ['Semua', 'Jalan Rusak', 'Drainase', 'Lampu Jalan']
+function getStatusMeta(status) {
+  return STATUS_LABEL[status] ?? { label: status, class: 'badge-divalidasi' }
+}
 
 function ReportCard({ report }) {
-  const s = STATUS_LABEL[report.status]
+  const s = getStatusMeta(report.status)
+  // Normalisasi field — backend mungkin pakai snake_case berbeda
+  const title    = report.title     ?? report.judul       ?? '(Tanpa judul)'
+  const desc     = report.description ?? report.deskripsi ?? ''
+  const location = report.location  ?? report.lokasi      ?? '-'
+  const time     = report.created_at_human ?? report.time ?? report.created_at ?? ''
+
   return (
-    <Link to={`/laporan/${report.id}`} className="block card-hover p-4 border-l-4 border-l-transparent hover:border-l-primary">
+    <Link
+      to={`/laporan/${report.id}`}
+      className="block card-hover p-4 border-l-4 border-l-transparent hover:border-l-primary"
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
         <span className={`badge ${s.class}`}>{s.label}</span>
-        <span className="text-xs text-gray-400 flex-shrink-0">{report.time}</span>
+        <span className="text-xs text-gray-400 flex-shrink-0">{time}</span>
       </div>
-      <h4 className="text-sm font-bold text-gray-800 mb-1">{report.title}</h4>
-      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{report.desc}</p>
+      <h4 className="text-sm font-bold text-gray-800 mb-1">{title}</h4>
+      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{desc}</p>
       <p className="text-xs text-primary font-semibold mt-2 flex items-center gap-1">
-        📍 {report.location} · {report.distance}
+        📍 {location}
       </p>
     </Link>
   )
 }
 
-export default function PetaLaporan() {
-  const [activeCategory, setActiveCategory] = useState('Semua')
-  const [search, setSearch] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+function ReportCardSkeleton() {
+  return (
+    <div className="p-4 space-y-2 animate-pulse">
+      <div className="flex justify-between">
+        <div className="h-5 w-20 bg-gray-100 rounded-full" />
+        <div className="h-4 w-16 bg-gray-100 rounded" />
+      </div>
+      <div className="h-4 w-3/4 bg-gray-100 rounded" />
+      <div className="h-3 w-full bg-gray-100 rounded" />
+      <div className="h-3 w-24 bg-gray-100 rounded" />
+    </div>
+  )
+}
 
-  const filtered = MOCK_REPORTS.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) ||
-                        r.location.toLowerCase().includes(search.toLowerCase())
-    return matchSearch
-  })
+export default function PetaLaporan() {
+  const [activeCategory, setActiveCategory] = useState('')
+  const [search, setSearch]       = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [reportList, setReportList]   = useState([])
+  const [statsData, setStatsData]     = useState(null)
+  const [loadingReports, setLoadingReports] = useState(true)
+  const [errorReports, setErrorReports]     = useState(null)
+
+  const { data: categoriesData } = useCategories()
+
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400)
+    return () => clearTimeout(t)
+  }, [search])
+
+  // Fetch reports ketika filter berubah
+  useEffect(() => {
+    setLoadingReports(true)
+    setErrorReports(null)
+
+    const params = {}
+    if (debouncedSearch)  params.search      = debouncedSearch
+    if (activeCategory)   params.category_id = activeCategory
+
+    reportsApi.index(params)
+      .then(res => {
+        // Backend bisa kembalikan array langsung atau { data, meta, stats }
+        const list  = Array.isArray(res) ? res : (res?.data ?? [])
+        const stats = res?.stats ?? res?.meta ?? null
+        setReportList(list)
+        setStatsData(stats)
+      })
+      .catch(err => setErrorReports(err.message))
+      .finally(() => setLoadingReports(false))
+  }, [debouncedSearch, activeCategory])
+
+  const categoryList = categoriesData
+    ? [{ id: '', name: 'Semua' }, ...(Array.isArray(categoriesData) ? categoriesData : categoriesData?.data ?? [])]
+    : [{ id: '', name: 'Semua' }]
+
+  const activeLaporan = statsData?.active_reports ?? statsData?.laporan_aktif ?? reportList.length
+  const resolvedToday = statsData?.resolved_today  ?? statsData?.selesai_24j  ?? '-'
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      {/* ── Main layout ── */}
       <div className="flex flex-1 flex-col md:flex-row overflow-hidden" style={{ height: 'calc(100vh - 4rem)' }}>
 
-        {/* ── Mobile toggle button ── */}
+        {/* ── Mobile toggle ── */}
         <div className="md:hidden bg-white border-b border-gray-100 px-4 py-2 flex items-center justify-between">
           <span className="text-sm font-bold text-gray-700">Daftar Laporan</span>
           <button
@@ -111,17 +161,17 @@ export default function PetaLaporan() {
 
             {/* Category filters */}
             <div className="flex flex-wrap gap-1.5 mt-3">
-              {CATEGORIES.map(cat => (
+              {categoryList.map(cat => (
                 <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                    activeCategory === cat
+                    activeCategory === cat.id
                       ? 'bg-primary text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {cat}
+                  {cat.name ?? cat.nama}
                 </button>
               ))}
             </div>
@@ -130,34 +180,42 @@ export default function PetaLaporan() {
           {/* Stat mini bar */}
           <div className="flex border-b border-gray-100 divide-x divide-gray-100">
             <div className="flex-1 p-3 text-center">
-              <p className="text-lg font-extrabold text-primary">1,284</p>
+              <p className="text-lg font-extrabold text-primary">{activeLaporan}</p>
               <p className="text-xs text-gray-400">Laporan Aktif</p>
             </div>
             <div className="flex-1 p-3 text-center">
-              <p className="text-lg font-extrabold text-primary">42</p>
+              <p className="text-lg font-extrabold text-primary">{resolvedToday}</p>
               <p className="text-xs text-gray-400">Selesai (24j)</p>
             </div>
           </div>
 
           {/* Report list */}
           <div className="flex-1 overflow-y-auto custom-scroll p-3 space-y-2">
-            {filtered.map(r => <ReportCard key={r.id} report={r} />)}
+            {loadingReports && (
+              <>
+                <ReportCardSkeleton />
+                <ReportCardSkeleton />
+                <ReportCardSkeleton />
+              </>
+            )}
+            {!loadingReports && errorReports && (
+              <p className="text-xs text-red-500 text-center py-4 px-2">{errorReports}</p>
+            )}
+            {!loadingReports && !errorReports && reportList.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-4">Tidak ada laporan ditemukan.</p>
+            )}
+            {!loadingReports && reportList.map(r => <ReportCard key={r.id} report={r} />)}
           </div>
         </aside>
 
         {/* ── Map area ── */}
-        <div className="flex-1 relative bg-gray-800 min-h-[300px]">
-          {/* Placeholder map */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <MapIcon className="mx-auto mb-2 opacity-30" size={48} />
-              <p className="text-sm">Integrasikan Leaflet atau Mapbox di sini</p>
-              <p className="text-xs mt-1 opacity-60">npm install leaflet react-leaflet</p>
-            </div>
-          </div>
+        <div className="flex-1 relative min-h-[300px]">
 
-          {/* Map controls */}
-          <div className="absolute bottom-6 right-4 flex flex-col gap-1">
+          {/* Peta Leaflet */}
+          <MapSurabaya />
+
+          {/* Map controls — tetap di atas peta */}
+          <div className="absolute bottom-6 right-4 flex flex-col gap-1 z-[1000]">
             <button className="w-9 h-9 bg-white rounded-xl shadow flex items-center justify-center hover:bg-gray-50 transition-colors">
               <Plus size={16} className="text-gray-600" />
             </button>
@@ -169,17 +227,17 @@ export default function PetaLaporan() {
             </button>
           </div>
 
-          {/* Stat overlay */}
-          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur rounded-xl px-4 py-2.5 shadow border border-gray-100">
+          {/* Stat overlay — tetap di atas peta */}
+          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur rounded-xl px-4 py-2.5 shadow border border-gray-100 z-[1000]">
             <div className="flex items-center gap-3 text-xs">
               <div>
                 <p className="text-gray-400">Laporan Aktif</p>
-                <p className="font-extrabold text-primary text-base">1,284</p>
+                <p className="font-extrabold text-primary text-base">{activeLaporan}</p>
               </div>
               <div className="w-px h-8 bg-gray-200" />
               <div>
                 <p className="text-gray-400">Selesai (24j)</p>
-                <p className="font-extrabold text-primary text-base">42</p>
+                <p className="font-extrabold text-primary text-base">{resolvedToday}</p>
               </div>
             </div>
           </div>
@@ -189,15 +247,5 @@ export default function PetaLaporan() {
 
       <Footer />
     </div>
-  )
-}
-
-function MapIcon(props) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-      <line x1="8" y1="2" x2="8" y2="18" />
-      <line x1="16" y1="6" x2="16" y2="22" />
-    </svg>
   )
 }

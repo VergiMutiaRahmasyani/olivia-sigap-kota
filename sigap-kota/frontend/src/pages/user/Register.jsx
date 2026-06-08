@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Mail, Lock, Phone, MapPin, AlertCircle } from 'lucide-react'
+import { User, Mail, Lock, Phone, MapPin, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import Logo from '../../components/common/Logo'
 
@@ -11,7 +11,9 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '', email: '', password: '', confirmPassword: '', phone: '', city: ''
   })
-  const [error, setError] = useState('')
+  const [error, setError]               = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm]   = useState(false)
 
   const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
 
@@ -45,6 +47,7 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+
             {/* Nama */}
             <div>
               <label className="input-label">Nama Lengkap</label>
@@ -70,18 +73,46 @@ export default function Register() {
               <label className="input-label">Kata Sandi</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input name="password" type="password" placeholder="••••••••"
-                  className="input-field pl-10" value={form.password} onChange={handleChange} required />
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  className="input-field pl-10 pr-10"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
-            {/* Confirm password */}
+            {/* Confirm Password */}
             <div>
               <label className="input-label">Konfirmasi Kata Sandi</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input name="confirmPassword" type="password" placeholder="••••••••"
-                  className="input-field pl-10" value={form.confirmPassword} onChange={handleChange} required />
+                <input
+                  name="confirmPassword"
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  className="input-field pl-10 pr-10"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -108,6 +139,7 @@ export default function Register() {
             <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 mt-2">
               {loading ? 'Mendaftar...' : 'Daftar Sekarang'}
             </button>
+
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-5">

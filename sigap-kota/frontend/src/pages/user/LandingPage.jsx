@@ -1,16 +1,21 @@
 import { Link } from 'react-router-dom'
-import { Map, Plus, FileText, Cpu, Users, TrendingUp, ArrowRight } from 'lucide-react'
+import { Map, Plus, FileText, Cpu, Users, ArrowRight } from 'lucide-react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import EmergencyButton from '../../components/common/EmergencyButton'
 import jakartaImg from '../../assets/jakarta.jpg'
 import cardmapImg from '../../assets/cardmap.jpg'
+import { useDashboardStats } from '../../hooks/useApi'
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
-function StatCard({ value, label }) {
+function StatCard({ value, label, loading }) {
   return (
     <div className="flex-1 text-center py-8 px-4 border-r border-gray-100 last:border-r-0">
-      <p className="text-4xl font-display font-extrabold text-primary">{value}</p>
+      {loading ? (
+        <div className="h-10 w-20 mx-auto bg-gray-100 rounded-lg animate-pulse mb-2" />
+      ) : (
+        <p className="text-4xl font-display font-extrabold text-primary">{value}</p>
+      )}
       <p className="text-xs font-display font-semibold text-gray-400 tracking-widest uppercase mt-1">
         {label}
       </p>
@@ -38,6 +43,14 @@ function StepCard({ step, icon: Icon, title, desc }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const { data: stats, loading: statsLoading } = useDashboardStats()
+
+  // Ambil nilai dari response API, fallback ke '-' saat loading / error
+  const resolvedToday  = stats?.resolved_today   ?? stats?.laporan_selesai_hari_ini ?? '-'
+  const activeUsers    = stats?.active_users      ?? stats?.warga_aktif              ?? '-'
+  const coveragePct    = stats?.coverage_percent  ?? stats?.wilayah_tercover         ?? '-'
+  const totalResolved  = stats?.total_resolved    ?? stats?.laporan_selesai          ?? '-'
+
   return (
     <div className="min-h-screen flex flex-col bg-cream">
       <Navbar />
@@ -96,10 +109,13 @@ export default function LandingPage() {
                 className="w-full h-full object-cover"
               />
             </div>
-            {/* Floating stat pill */}
+            {/* Floating stat pill — laporan selesai hari ini */}
             <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg px-5 py-3 border border-gray-100">
               <p className="text-xs text-gray-400">Laporan diselesaikan hari ini</p>
-              <p className="text-2xl font-extrabold text-primary">42</p>
+              {statsLoading
+                ? <div className="h-8 w-10 bg-gray-100 rounded animate-pulse mt-1" />
+                : <p className="text-2xl font-extrabold text-primary">{resolvedToday}</p>
+              }
             </div>
           </div>
 
@@ -110,9 +126,9 @@ export default function LandingPage() {
       <section className="bg-white border-y border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0">
-            <StatCard value="10"   label="Laporan Selesai" />
-            <StatCard value="35+"  label="Warga Aktif" />
-            <StatCard value="78%"  label="Wilayah Tercover" />
+            <StatCard value={totalResolved} label="Laporan Selesai"  loading={statsLoading} />
+            <StatCard value={activeUsers}   label="Warga Aktif"      loading={statsLoading} />
+            <StatCard value={coveragePct !== '-' ? `${coveragePct}%` : '-'} label="Wilayah Tercover" loading={statsLoading} />
           </div>
         </div>
       </section>
@@ -171,20 +187,18 @@ export default function LandingPage() {
             </div>
           </div>
 
-        {/* Right visual */}
-        <div className="hidden md:flex items-center justify-center overflow-hidden max-h-[320px]">
-          <img
-            src={cardmapImg}
-            alt="Aplikasi SIGAP KOTA"
-            className="w-full h-full object-cover object-center"
-          />
-        </div>
+          {/* Right visual */}
+          <div className="hidden md:flex items-center justify-center overflow-hidden max-h-[320px]">
+            <img
+              src={cardmapImg}
+              alt="Aplikasi SIGAP KOTA"
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
         </div>
       </section>
 
       <Footer />
-
-      {/* ── Floating Emergency Button ── */}
       <EmergencyButton />
     </div>
   )

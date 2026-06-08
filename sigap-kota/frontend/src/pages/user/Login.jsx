@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import Logo from '../../components/common/Logo'
 
 export default function Login() {
   const { login, loading } = useAuth()
   const navigate = useNavigate()
-
-  const [form, setForm]     = useState({ email: '', password: '' })
-  const [error, setError]   = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [form, setForm]   = useState({ email: '', password: '' })
+  const [error, setError] = useState('')
 
   const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
 
@@ -26,9 +26,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream to-primary-50 flex flex-col items-center justify-center px-4 py-12">
-
       <div className="w-full max-w-md">
-        {/* Card */}
         <div className="card p-8 md:p-10 shadow-xl">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-3">
@@ -45,6 +43,7 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
             <div>
               <label className="input-label">Alamat Email</label>
               <div className="relative">
@@ -61,6 +60,7 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="input-label mb-0">Kata Sandi</label>
@@ -72,24 +72,28 @@ export default function Login() {
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="input-field pl-10"
+                  className="input-field pl-10 pr-10"
                   value={form.password}
                   onChange={handleChange}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3">
-              {loading ? 'Memproses...' : (
-                <>Masuk <ArrowRight size={16} /></>
-              )}
+              {loading ? 'Memproses...' : <>Masuk <ArrowRight size={16} /></>}
             </button>
           </form>
 
-          {/* Social divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs text-gray-400 font-body">Atau masuk dengan</span>

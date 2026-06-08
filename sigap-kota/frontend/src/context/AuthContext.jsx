@@ -1,44 +1,90 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { auth as authApi, setToken, clearToken, getToken } from '../services/api'
 
 const AuthContext = createContext(null)
 
-// Mock users for development — ganti dengan API call nanti
-const MOCK_USERS = [
-  { id: 1, role: 'user',  name: 'Aditya Pratama', email: 'user@sigapkota.id',  avatar: null },
-  { id: 2, role: 'admin', name: 'Admin SIGAP',    email: 'admin@sigapkota.id', avatar: null },
-]
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [user, setUser]       = useState(null)
+  const [loading, setLoading] = useState(true) // true saat startup agar Guards tidak flicker
 
+  // ── Restore session saat app pertama kali load ──────────────────────────
+  useEffect(() => {
+    const token = getToken()
+    if (!token) { setLoading(false); return }
+
+    authApi.me()
+      .then(data => setUser(data?.user ?? data))   // terima { user } atau langsung object
+      .catch(() => clearToken())                    // token expired / invalid → hapus
+      .finally(() => setLoading(false))
+  }, [])
+
+  // ── Login ────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
     setLoading(true)
-    // Simulasi API — ganti dengan fetch() ke backend
-    await new Promise(r => setTimeout(r, 800))
-    const found = MOCK_USERS.find(u => u.email === email)
-    setLoading(false)
-    if (found) {
-      setUser(found)
-      return { success: true, role: found.role }
+    try {
+      const data = await authApi.login(email, password)
+      // Backend diharapkan mengembalikan: { token, user }
+      setToken(data.token)
+      setUser(data.user)
+      return { success: true, role: data.user.role }
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message ?? 'Email atau kata sandi salah.',
+      }
+    } finally {
+      setLoading(false)
     }
-    return { success: false, message: 'Email atau kata sandi salah.' }
   }
 
-  const logout = () => setUser(null)
-
-  const register = async (data) => {
+  // ── Register ─────────────────────────────────────────────────────────────
+  const register = async (formData) => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    setLoading(false)
-    // Setelah register, auto-login sebagai user
-    const newUser = { id: Date.now(), role: 'user', name: data.name, email: data.email, avatar: null }
-    setUser(newUser)
-    return { success: true }
+    try {
+      const data = await authApi.register(formData)
+      setToken(data.token)
+      setUser(data.user)
+      return { success: true }
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message ?? 'Pendaftaran gagal, coba lagi.',
+        errors: err.data?.errors ?? {},   // validasi Laravel (422)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Logout ───────────────────────────────────────────────────────────────
+  const logout = async () => {
+    try {
+      await authApi.logout()
+    } catch {
+      // Lanjutkan logout di sisi client meski API gagal
+    } finally {
+      clearToken()
+      setUser(null)
+    }
+  }
+
+  // ── Update profile ───────────────────────────────────────────────────────
+  const updateProfile = async (data) => {
+    try {
+      const updated = await authApi.updateProfile(data)
+      setUser(prev => ({ ...prev, ...(updated?.user ?? updated) }))
+      return { success: true }
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message ?? 'Gagal memperbarui profil.',
+        errors: err.data?.errors ?? {},
+      }
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

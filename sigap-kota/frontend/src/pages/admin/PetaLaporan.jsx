@@ -1,8 +1,8 @@
-// pages/admin/PetaLaporan.jsx
 import { useState } from 'react'
 import { Brain, Clock, MapPin, Download, ZoomIn, ZoomOut, Crosshair, Search } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import MapSurabaya from '../../components/common/MapSurabaya'
 
 const NAV = [
   { to: '/admin/peta',     label: 'Peta Laporan'    },
@@ -174,75 +174,13 @@ export default function PetaLaporan() {
         </aside>
 
         {/* ── Map Area ── */}
-        <div className="flex-1 relative overflow-hidden bg-[#e8e0d8]">
+        <div className="flex-1 relative overflow-hidden">
 
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: [
-                'linear-gradient(rgba(180,170,155,0.4) 1px, transparent 1px)',
-                'linear-gradient(90deg, rgba(180,170,155,0.4) 1px, transparent 1px)',
-              ].join(','),
-              backgroundSize: '48px 48px',
-            }}
-          />
+          {/* Peta Leaflet */}
+          <MapSurabaya />
 
-          <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.18 }}>
-            <line x1="0" y1="35%" x2="100%" y2="35%" stroke="#a09080" strokeWidth="3" />
-            <line x1="0" y1="60%" x2="100%" y2="60%" stroke="#a09080" strokeWidth="2" />
-            <line x1="30%" y1="0" x2="30%" y2="100%" stroke="#a09080" strokeWidth="2" />
-            <line x1="60%" y1="0" x2="60%" y2="100%" stroke="#a09080" strokeWidth="3" />
-            <line x1="15%" y1="0" x2="45%" y2="100%" stroke="#a09080" strokeWidth="1.5" />
-            <line x1="55%" y1="0" x2="75%" y2="100%" stroke="#a09080" strokeWidth="1.5" />
-          </svg>
-
-          {[
-            { label: 'West Jakarta',  top: '38%', left: '12%' },
-            { label: 'Jakarta',       top: '38%', left: '44%' },
-            { label: 'South Jakarta', top: '65%', left: '44%' },
-            { label: 'North Jakarta', top: '10%', left: '68%' },
-          ].map(l => (
-            <span key={l.label} className="absolute text-sm font-display font-bold text-gray-500 select-none pointer-events-none"
-              style={{ top: l.top, left: l.left, transform: 'translate(-50%,-50%)' }}>
-              {l.label}
-            </span>
-          ))}
-
-          {ZONES.map((z, i) => {
-            const cfg = LEVEL_CONFIG[z.level]
-            return (
-              <div key={i} className="absolute rounded-lg transition-all"
-                style={{ top: z.top, left: z.left, width: z.width, height: z.height, background: cfg.zone, border: `2px solid ${cfg.zoneBorder}` }}
-              />
-            )
-          })}
-
-          <div className="absolute flex items-center justify-center"
-            style={{ top: '30%', left: '50%', transform: 'translate(-50%,-50%)' }}>
-            <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center shadow-xl animate-pulse">
-              <svg viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01" />
-              </svg>
-            </div>
-          </div>
-
-          {[
-            { top: '18%', left: '22%', color: '#6b7280' },
-            { top: '14%', left: '58%', color: '#6b7280' },
-            { top: '20%', left: '78%', color: '#6b7280' },
-            { top: '48%', left: '72%', color: '#f59e0b' },
-            { top: '55%', left: '82%', color: '#6b7280' },
-            { top: '70%', left: '60%', color: '#6b7280' },
-            { top: '76%', left: '78%', color: '#6b7280' },
-            { top: '82%', left: '40%', color: '#6b7280' },
-          ].map((p, i) => (
-            <div key={i} className="absolute w-7 h-7 rounded-full border-2 border-white shadow flex items-center justify-center text-white"
-              style={{ top: p.top, left: p.left, background: p.color, transform: 'translate(-50%,-50%)' }}>
-              <MapPin size={12} />
-            </div>
-          ))}
-
-          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur rounded-xl shadow-lg p-4 w-56">
+          {/* Indikator Urgensi — kanan atas */}
+          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur rounded-xl shadow-lg p-4 w-56 z-[1000]">
             <p className="text-xs font-display font-extrabold text-gray-700 mb-3">Indikator Urgensi</p>
             <div className="space-y-2">
               {[
@@ -251,7 +189,7 @@ export default function PetaLaporan() {
                 { dot: 'bg-yellow-400', label: 'Sedang (Terjadwal)'       },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.dot}`} />
+                  <div className={`w-3 h-3 rounded-full shrink-0 ${item.dot}`} />
                   <span className="text-xs text-gray-600">{item.label}</span>
                 </div>
               ))}
@@ -262,8 +200,19 @@ export default function PetaLaporan() {
             </div>
           </div>
 
+          {/* Zona urgensi overlay — di atas peta */}
+          {ZONES.map((z, i) => {
+            const cfg = LEVEL_CONFIG[z.level]
+            return (
+              <div key={i} className="absolute rounded-lg pointer-events-none z-[500]"
+                style={{ top: z.top, left: z.left, width: z.width, height: z.height, background: cfg.zone, border: `2px solid ${cfg.zoneBorder}` }}
+              />
+            )
+          })}
+
+          {/* Detail card saat wilayah dipilih */}
           {selected && (
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl p-4 w-72 border border-gray-100">
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl p-4 w-72 border border-gray-100 z-[1000]">
               <div className="flex items-start justify-between mb-2">
                 <p className="font-display font-extrabold text-gray-900 text-sm">{selected.nama}</p>
                 <span className={`text-xs font-display font-extrabold px-2 py-0.5 rounded-lg ${LEVEL_CONFIG[selected.level].badge}`}>
@@ -283,7 +232,8 @@ export default function PetaLaporan() {
             </div>
           )}
 
-          <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+          {/* Zoom controls */}
+          <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-[1000]">
             {[
               { icon: <ZoomIn size={16} />,    cls: 'bg-white text-gray-700' },
               { icon: <ZoomOut size={16} />,   cls: 'bg-white text-gray-700' },
@@ -294,6 +244,7 @@ export default function PetaLaporan() {
               </button>
             ))}
           </div>
+
         </div>
       </div>
     </div>
