@@ -20,6 +20,6 @@ class ReportPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return Storage::disk($this->disk ?? 'public')->url($this->path);
     }
 }

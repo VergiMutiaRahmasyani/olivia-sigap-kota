@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, ThumbsUp, Share2, MapPin, CheckCircle, Clock, Send, ExternalLink, AlertCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ThumbsUp, Share2, MapPin, CheckCircle, Clock, Send, ExternalLink, AlertCircle } from 'lucide-react'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import { useReport } from '../../hooks/useApi'
 import { reports as reportsApi } from '../../services/api'
+import MiniMap from '../../components/common/MiniMap'
 
 // ── Status helpers ───────────────────────────────────────────────────────────
 const STATUS_CLASS = {
@@ -14,10 +15,16 @@ const STATUS_CLASS = {
   selesai: 'badge-selesai', resolved: 'badge-selesai',
 }
 const STATUS_TEXT = {
-  kritikal: 'Kritikal', critical: 'Kritikal',
-  divalidasi: 'Divalidasi', verified: 'Divalidasi', pending: 'Menunggu',
-  proses: 'Diproses', in_progress: 'Diproses',
-  selesai: 'Selesai', resolved: 'Selesai',
+  menunggu: 'Menunggu',
+  diverifikasi: 'Diverifikasi',
+  diproses: 'Diproses',
+  selesai: 'Selesai',
+  ditolak: 'Ditolak',
+
+  pending: 'Menunggu',
+  verified: 'Diverifikasi',
+  in_progress: 'Diproses',
+  resolved: 'Selesai'
 }
 
 function getStatusClass(s) { return STATUS_CLASS[s] ?? 'badge-divalidasi' }
@@ -59,6 +66,7 @@ export default function DetailLaporan() {
   const [sudahValidasi, setSudahValidasi] = useState(false)
   const [validasiCount, setValidasiCount] = useState(null)
   const [sendingKomentar, setSendingKomentar] = useState(false)
+  const [currentImage, setCurrentImage] = useState(0)
 
   if (loading) return <Skeleton />
 
@@ -83,16 +91,23 @@ export default function DetailLaporan() {
   const title       = report.title        ?? report.judul        ?? '(Tanpa judul)'
   const desc        = report.description  ?? report.deskripsi    ?? ''
   const location    = report.location     ?? report.lokasi       ?? '-'
-  const address     = report.address      ?? report.alamat       ?? location
+  const address     = report.location_address      ?? report.address       ??  report.alamat       ?? '-'
   const time        = report.created_at_human ?? report.time     ?? report.created_at ?? ''
   const pelapor     = report.reporter?.name ?? report.user?.name ?? report.pelapor    ?? 'Anonim'
   const status      = report.status       ?? 'pending'
   const danger      = report.danger_label ?? (status === 'kritikal' || status === 'critical' ? 'BAHAYA TINGGI' : null)
   const validations = validasiCount ?? report.validations ?? report.validasi ?? 0
-  const riwayat     = report.history      ?? report.riwayat      ?? []
+  const riwayat     = report.statusHistories      ?? report.status_histories      ?? report.history      ?? []
   const komentar    = report.comments     ?? report.komentar      ?? []
-  const images      = report.images       ?? report.photos        ?? (report.image ? [report.image] : [])
-  const mainImage   = images[0]           ?? null
+  const images = report.photos ?? []
+  const mainImage = images.length > 0
+  ? `http://localhost:8000/storage/${images[currentImage].path}`
+  : null
+  const latitude =
+  parseFloat(report.latitude)
+
+  const longitude =
+  parseFloat(report.longitude)
 
   const handleValidasi = async () => {
     if (sudahValidasi) return
@@ -136,20 +151,76 @@ export default function DetailLaporan() {
           <div className="space-y-5">
 
             {/* Hero image */}
-            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-200">
-              {mainImage ? (
-                <img src={mainImage} alt={title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                  [ Foto Laporan ]
-                </div>
-              )}
-              {danger && (
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-danger text-white text-xs font-bold">
-                  ⚠ {danger}
-                </div>
-              )}
-            </div>
+            <div className="relative">
+
+  <div className="w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-200">
+    {mainImage ? (
+      <img
+        src={mainImage}
+        alt={title}
+        className="w-full h-full object-cover"
+      />
+    ) : (
+      <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+        [ Foto Laporan ]
+      </div>
+    )}
+
+    {danger && (
+      <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-danger text-white text-xs font-bold">
+        ⚠ {danger}
+      </div>
+    )}
+
+    {images.length > 1 && (
+      <>
+        <button
+          onClick={() =>
+            setCurrentImage(prev =>
+              prev === 0 ? images.length - 1 : prev - 1
+            )
+          }
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg"
+        >
+          <ChevronLeft size={20} />
+        </button>
+
+        <button
+          onClick={() =>
+            setCurrentImage(prev =>
+              prev === images.length - 1 ? 0 : prev + 1
+            )
+          }
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </>
+    )}
+  </div>
+
+  {/* Thumbnail */}
+  {images.length > 1 && (
+    <div className="flex gap-2 mt-3 overflow-x-auto">
+      {images.map((img, index) => (
+        <img
+          key={index}
+          src={`http://localhost:8000/storage/${img.path}`}
+          alt={`thumb-${index}`}
+          onClick={() => setCurrentImage(index)}
+          className={`
+            w-24 h-20 rounded-lg object-cover cursor-pointer border-2
+            ${
+              currentImage === index
+                ? 'border-primary'
+                : 'border-transparent'
+            }
+          `}
+        />
+      ))}
+    </div>
+  )}
+</div>
 
             {/* Info card */}
             <div className="card p-6 space-y-4">
@@ -256,7 +327,8 @@ export default function DetailLaporan() {
                 <MapPin size={14} className="text-primary flex-shrink-0" />
                 {address}
               </div>
-              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-200">
+              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden">
+                  <MiniMap latitude={latitude} longitude={longitude} title={title} />
                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">
                   [ Mini Map ]
                 </div>

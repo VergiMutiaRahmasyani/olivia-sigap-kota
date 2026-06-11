@@ -111,7 +111,13 @@ export default function DetailLaporan() {
   const similarArea = r.similar_in_area ?? r.similar_area ?? 0
   const mapLink   = r.map_link ?? `sigap.id/map/${reportId}`
   const comments  = r.comments ?? r.komentar ?? []
-  const images    = r.images ?? r.photos ?? (r.image ? [r.image] : [])
+  const images = Array.isArray(r.photos)
+  ? r.photos.map(photo => photo.url)
+  : Array.isArray(r.images)
+  ? r.images
+  : r.image
+  ? [r.image]
+  : []
   const isCritical = status === 'kritis' || status === 'critical' || (score !== '-' && score >= 80)
 
   // ── Update status ────────────────────────────────────────────────────────
@@ -133,7 +139,7 @@ export default function DetailLaporan() {
     if (!window.confirm('Tandai laporan ini sebagai palsu? Laporan akan diarsipkan.')) return
     setMarkingFake(true)
     try {
-      await reportsApi.updateStatus(id, { status: 'rejected', note: 'Laporan palsu' })
+      await reportsApi.updateStatus(id, { status: 'ditolak', notes: 'Laporan palsu' })
       showToast('Laporan ditandai sebagai palsu')
       setTimeout(() => navigate('/admin/laporan'), 1500)
     } catch (err) {
@@ -230,27 +236,30 @@ export default function DetailLaporan() {
               </div>
 
               {/* Photos */}
-              <div className="px-5 py-4 flex gap-3 flex-wrap">
-                {images.slice(0, 2).map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt={`foto-${i}`}
-                    className="w-20 h-14 rounded-lg object-cover bg-gray-100"
-                  />
-                ))}
-                {images.length === 0 && (
-                  <div className="w-20 h-14 bg-stone-200 rounded-lg flex items-center justify-center text-stone-400">
-                    <MapPin size={22} />
-                  </div>
-                )}
-                {images.length > 2 && (
-                  <button className="w-20 h-14 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-gray-300 transition-colors">
-                    <Camera size={16} />
-                    <span className="text-[10px] mt-0.5">+{images.length - 2} Foto</span>
-                  </button>
-                )}
-              </div>
+              <div className="px-5 py-4">
+  {images.length > 0 && (
+    <>
+      <img
+        src={images[0]}
+        alt="Foto utama"
+        className="w-full h-80 rounded-xl object-cover border border-gray-200"
+      />
+
+      {images.length > 1 && (
+        <div className="grid grid-cols-4 gap-2 mt-3">
+          {images.slice(1).map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt={`foto-${i}`}
+              className="w-full h-24 rounded-lg object-cover border border-gray-200"
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )}
+</div>
             </div>
 
             {/* Routing card */}
@@ -409,8 +418,8 @@ export default function DetailLaporan() {
                 <p className="text-[10px] font-display font-extrabold text-gray-400 uppercase tracking-widest">Navigasi Admin</p>
               </div>
               {[
-                { icon: RefreshCw,  label: 'Tandai Sedang Diproses', action: () => handleUpdateStatus('in_progress') },
-                { icon: CheckCircle,label: 'Tandai Selesai',         action: () => handleUpdateStatus('resolved') },
+                { icon: RefreshCw,  label: 'Tandai Sedang Diproses', action: () => handleUpdateStatus('diproses') },
+                { icon: CheckCircle,label: 'Tandai Selesai',         action: () => handleUpdateStatus('selesai') },
                 { icon: UserCheck,  label: 'Delegasi Manual',        action: () => showToast('Delegasi manual dalam pengembangan') },
                 { icon: Phone,      label: 'Hubungi Instansi',       action: () => kirimWA() },
               ].map(({ icon: Icon, label, action }) => (

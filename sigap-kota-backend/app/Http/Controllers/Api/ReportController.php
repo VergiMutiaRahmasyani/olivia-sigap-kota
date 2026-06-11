@@ -59,7 +59,7 @@ class ReportController extends Controller
             'latitude'         => 'nullable|numeric|between:-90,90',
             'longitude'        => 'nullable|numeric|between:-180,180',
             'photos'           => 'required|array|min:1|max:5',
-            'photos.*'         => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'photos.*'         => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         DB::beginTransaction();
@@ -78,6 +78,7 @@ class ReportController extends Controller
                 ReportPhoto::create([
                     'report_id'  => $report->id,
                     'path'       => $path,
+                    'disk'       => 'public',
                     'is_primary' => $i === 0,
                 ]);
                 $photoUrls[] = Storage::disk('public')->url($path);

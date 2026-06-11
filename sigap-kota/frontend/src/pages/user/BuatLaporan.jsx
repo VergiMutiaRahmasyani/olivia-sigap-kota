@@ -4,6 +4,7 @@ import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import { reports as reportsApi } from '../../services/api'
 import { useCategories } from '../../hooks/useApi'
+import LocationPickerMap from '../../components/common/LocationPickerMap'
 
 const STEPS = ['Pilih Kategori', 'Unggah Bukti', 'Lokasi Presisi', 'Detail Laporan']
 
@@ -81,7 +82,11 @@ function StepUnggah({ files, onFiles }) {
         <p className="text-sm font-display font-semibold text-gray-600">Seret & lepas atau klik untuk unggah</p>
         <p className="text-xs text-gray-400 mt-1">PNG, JPG, MP4 — maks. 10MB</p>
         <input
-          id="file-input" type="file" multiple accept="image/*,video/*" className="hidden"
+          id="file-input"
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
           onChange={e => onFiles([...files, ...Array.from(e.target.files)])}
         />
       </div>
@@ -117,11 +122,11 @@ function StepLokasi({ location, onChange }) {
       <h2 className="text-xl sm:text-2xl font-display font-bold text-gray-900 mb-1">Lokasi Presisi</h2>
       <p className="text-sm text-gray-500 mb-6">Tandai lokasi kejadian di peta atau isi secara manual.</p>
 
-      <div className="w-full h-48 sm:h-56 rounded-2xl bg-gray-800 flex items-center justify-center mb-5">
-        <div className="text-center text-gray-500">
-          <MapPin size={28} className="mx-auto mb-1 opacity-40" />
-          <p className="text-xs">Klik untuk pilih lokasi di peta</p>
-        </div>
+      <div className="mb-5 overflow-hidden rounded-2xl">
+        <LocationPickerMap
+          location={location}
+          onChange={onChange}
+        />
       </div>
 
       <div className="space-y-3">
@@ -201,7 +206,7 @@ export default function BuatLaporan() {
   const [step, setStep]         = useState(0)
   const [category, setCategory] = useState('')
   const [files, setFiles]       = useState([])
-  const [location, setLocation] = useState({ address: '', lat: null, lng: null })
+  const [location, setLocation] = useState({ address: '',kelurahan: '', kecamatan: '', lat: null, lng: null })
   const [detail, setDetail]     = useState({ title: '', desc: '', urgency: '' })
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -212,9 +217,11 @@ export default function BuatLaporan() {
 
   const canNext = [
     category !== '',
-    true,                                   // foto opsional
-    location.address !== '',
-    detail.title !== '' && detail.urgency !== '',
+    true,
+    location.lat !== null && location.lng !== null,
+    detail.title !== '' &&
+    detail.desc.length >= 20 &&
+    detail.urgency !== '',
   ]
 
   const handleNext = async () => {
@@ -229,21 +236,61 @@ export default function BuatLaporan() {
 
     try {
       const formData = new FormData()
+
       formData.append('category_id', category)
       formData.append('title', detail.title)
       formData.append('description', detail.desc)
-      formData.append('urgency', detail.urgency)
-      formData.append('address', location.address)
-      if (location.lat) formData.append('latitude',  location.lat)
-      if (location.lng) formData.append('longitude', location.lng)
-      files.forEach(f => formData.append('images[]', f))
+
+      // WAJIB sesuai backend Laravel
+      formData.append('location_address', location.address)
+      formData.append('kelurahan', location.kelurahan)
+      formData.append('kecamatan', location.kecamatan)
+      formData.append('latitude', location.lat)
+      formData.append('longitude', location.lng)
+
+      if (location.lat !== null) {
+        formData.append('latitude', location.lat)
+      }
+
+      if (location.lng !== null) {
+        formData.append('longitude', location.lng)
+      }
+
+      // WAJIB sesuai backend Laravel
+      files.forEach(file => {
+        formData.append('photos[]', file)
+      })
+
+      // Debug sementara
+      for (const pair of formData.entries()) {
+        console.log(pair[0], pair[1])
+      }
 
       const res = await reportsApi.store(formData)
+
       setCreatedId(res?.data?.id ?? res?.id ?? null)
       setSubmitted(true)
-    } catch (err) {
-      setSubmitError(err.message ?? 'Gagal mengirim laporan, coba lagi.')
-    } finally {
+    } 
+    
+    catch (err) {
+  console.error(err)
+
+  if (err?.data?.errors) {
+    const firstError = Object.values(err.data.errors)[0]
+
+    setSubmitError(
+      Array.isArray(firstError)
+        ? firstError[0]
+        : 'Data laporan tidak valid'
+    )
+  } else {
+    setSubmitError(
+      err.message ?? 'Gagal mengirim laporan, coba lagi.'
+    )
+  }
+}
+    
+    finally {
       setSubmitting(false)
     }
   }

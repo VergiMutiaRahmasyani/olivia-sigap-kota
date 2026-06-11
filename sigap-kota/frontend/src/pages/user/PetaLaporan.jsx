@@ -97,6 +97,7 @@ export default function PetaLaporan() {
         const list  = Array.isArray(res) ? res : (res?.data ?? [])
         const stats = res?.stats ?? res?.meta ?? null
         setReportList(list)
+        console.log('REPORTS', list)
         setStatsData(stats)
       })
       .catch(err => setErrorReports(err.message))
@@ -212,7 +213,7 @@ export default function PetaLaporan() {
         <div className="flex-1 relative min-h-[300px]">
 
           {/* Peta Leaflet */}
-          <MapSurabaya />
+          <MapSurabaya reports={reportList} />
 
           {/* Map controls — tetap di atas peta */}
           <div className="absolute bottom-6 right-4 flex flex-col gap-1 z-[1000]">

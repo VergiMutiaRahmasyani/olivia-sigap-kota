@@ -67,6 +67,9 @@ export const reports = {
   store:   (body)       => post('/reports', body),
   update:  (id, body)   => patch(`/reports/${id}`, body),
   destroy: (id)         => del(`/reports/${id}`),
+  updateStatus: (id, body) => patch(`/reports/${id}/status`, body),
+  submitFeedback: (id, body) => post(`/reports/${id}/feedback`, body),
+  reanalyze: (id) => post(`/reports/${id}/reanalyze`, {})
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────

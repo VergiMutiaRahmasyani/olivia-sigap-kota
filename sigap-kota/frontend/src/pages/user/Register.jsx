@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Mail, Lock, Phone, MapPin, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import {
+  User,
+  Mail,
+  Lock,
+  Phone,
+  MapPin,
+  AlertCircle,
+  Eye,
+  EyeOff
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import Logo from '../../components/common/Logo'
 
@@ -9,34 +18,78 @@ export default function Register() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
-    name: '', email: '', password: '', confirmPassword: '', phone: '', city: ''
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+    phone: '',
+    city: ''
   })
-  const [error, setError]               = useState('')
+
+  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm]   = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
-  const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  const handleChange = (e) => {
+    setForm(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+  }
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (form.password !== form.confirmPassword) {
+
+    if (form.password !== form.password_confirmation) {
       setError('Kata sandi tidak cocok.')
       return
     }
-    const res = await register(form)
-    if (res.success) navigate('/')
+
+    try {
+      const payload = {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        password_confirmation: form.password_confirmation
+      }
+
+      const res = await register(payload)
+
+      if (res?.token || res?.success) {
+        navigate('/')
+      }
+    } catch (err) {
+      console.error(err)
+
+      if (err?.data?.errors) {
+        const firstError = Object.values(err.data.errors)[0]
+
+        if (Array.isArray(firstError)) {
+          setError(firstError[0])
+        } else {
+          setError('Data yang dimasukkan tidak valid.')
+        }
+      } else {
+        setError(err?.message || 'Registrasi gagal.')
+      }
+    }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-50 via-cream to-primary-50 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
+
         <div className="card p-8 md:p-10 shadow-xl">
+
           <div className="text-center mb-8">
             <div className="flex justify-center mb-3">
               <Logo size="lg" />
             </div>
-            <p className="text-sm text-gray-500 font-body">Layanan Pelaporan Warga Digital</p>
+            <p className="text-sm text-gray-500 font-body">
+              Layanan Pelaporan Warga Digital
+            </p>
           </div>
 
           {error && (
@@ -52,9 +105,19 @@ export default function Register() {
             <div>
               <label className="input-label">Nama Lengkap</label>
               <div className="relative">
-                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input name="name" type="text" placeholder="Nama lengkap sesuai KTP"
-                  className="input-field pl-10" value={form.name} onChange={handleChange} required />
+                <User
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  name="name"
+                  type="text"
+                  placeholder="Nama lengkap sesuai KTP"
+                  className="input-field pl-10"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
             </div>
 
@@ -62,9 +125,19 @@ export default function Register() {
             <div>
               <label className="input-label">Alamat Email</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input name="email" type="email" placeholder="nama@email.com"
-                  className="input-field pl-10" value={form.email} onChange={handleChange} required />
+                <Mail
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="nama@email.com"
+                  className="input-field pl-10"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
             </div>
 
@@ -72,71 +145,102 @@ export default function Register() {
             <div>
               <label className="input-label">Kata Sandi</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Minimal 8 karakter"
                   className="input-field pl-10 pr-10"
                   value={form.password}
                   onChange={handleChange}
                   required
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Confirm Password */}
+            {/* Konfirmasi Password */}
             <div>
               <label className="input-label">Konfirmasi Kata Sandi</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
-                  name="confirmPassword"
+                  name="password_confirmation"
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Ulangi kata sandi"
                   className="input-field pl-10 pr-10"
-                  value={form.confirmPassword}
+                  value={form.password_confirmation}
                   onChange={handleChange}
                   required
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowConfirm(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                 >
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Phone */}
+            {/* Telepon */}
             <div>
               <label className="input-label">Nomor Telepon</label>
               <div className="relative">
-                <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input name="phone" type="tel" placeholder="0812xxxxxxxx"
-                  className="input-field pl-10" value={form.phone} onChange={handleChange} required />
+                <Phone
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  name="phone"
+                  type="tel"
+                  placeholder="08123456789"
+                  className="input-field pl-10"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                />
               </div>
             </div>
 
-            {/* City */}
+            {/* Kota */}
             <div>
               <label className="input-label">Kota / Kabupaten</label>
               <div className="relative">
-                <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input name="city" type="text" placeholder="Masukan kota tempat tinggal"
-                  className="input-field pl-10" value={form.city} onChange={handleChange} required />
+                <MapPin
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  name="city"
+                  type="text"
+                  placeholder="Surabaya"
+                  className="input-field pl-10"
+                  value={form.city}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 mt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full justify-center py-3 mt-2"
+            >
               {loading ? 'Mendaftar...' : 'Daftar Sekarang'}
             </button>
 
@@ -144,21 +248,21 @@ export default function Register() {
 
           <p className="text-center text-sm text-gray-500 mt-5">
             Sudah punya akun?{' '}
-            <Link to="/masuk" className="text-primary font-display font-semibold hover:underline">
+            <Link
+              to="/masuk"
+              className="text-primary font-display font-semibold hover:underline"
+            >
               Masuk di sini
             </Link>
           </p>
+
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6 leading-relaxed">
           SIGAP KOTA menggunakan sistem enkripsi tingkat lanjut untuk
           melindungi data pribadi dan privasi laporan Anda.
         </p>
-        <div className="flex justify-center gap-4 mt-2">
-          <button className="text-xs text-gray-400 hover:text-primary">Kebijakan Privasi</button>
-          <span className="text-gray-300">·</span>
-          <button className="text-xs text-gray-400 hover:text-primary">Syarat & Ketentuan</button>
-        </div>
+
       </div>
     </div>
   )
