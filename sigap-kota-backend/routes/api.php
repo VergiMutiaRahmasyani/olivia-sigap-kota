@@ -8,12 +8,6 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| SigapKota API Routes
-|--------------------------------------------------------------------------
-*/
-
 // ── Auth (Public) ──────────────────────────────────────────────────────
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -28,9 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Auth
     Route::prefix('auth')->group(function () {
-        Route::post('logout',          [AuthController::class, 'logout']);
-        Route::get('me',               [AuthController::class, 'me']);
-        Route::post('me',              [AuthController::class, 'updateProfile']);
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::get('me',      [AuthController::class, 'me']);
+        Route::patch('me',    [AuthController::class, 'updateProfile']); // ← POST → PATCH
     });
 
     // Dashboard
@@ -44,22 +38,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notifikasi
     Route::prefix('notifications')->group(function () {
-        Route::get('/',              [NotificationController::class, 'index']);
-        Route::get('unread-count',   [NotificationController::class, 'unreadCount']);
-        Route::post('read-all',      [NotificationController::class, 'markAllAsRead']);
-        Route::post('{id}/read',     [NotificationController::class, 'markAsRead']);
+        Route::get('/',            [NotificationController::class, 'index']);
+        Route::get('unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('read-all',    [NotificationController::class, 'markAllAsRead']);
+        Route::post('{id}/read',   [NotificationController::class, 'markAsRead']);
     });
 
     // Kategori (Admin)
-    Route::post('categories',           [CategoryController::class, 'store']);
-    Route::put('categories/{category}', [CategoryController::class, 'update']);
+    Route::post('categories',              [CategoryController::class, 'store']);
+    Route::put('categories/{category}',    [CategoryController::class, 'update']);
     Route::delete('categories/{category}', [CategoryController::class, 'destroy']);
 
     // Manajemen User (Admin)
     Route::prefix('users')->group(function () {
-        Route::get('/',                        [UserController::class, 'index']);
-        Route::post('/',                       [UserController::class, 'store']);
-        Route::put('{user}',                   [UserController::class, 'update']);
-        Route::patch('{user}/toggle-active',   [UserController::class, 'toggleActive']);
+        Route::get('/',                      [UserController::class, 'index']);
+        Route::post('/',                     [UserController::class, 'store']);
+        Route::put('{user}',                 [UserController::class, 'update']);
+        Route::patch('{user}/toggle-active', [UserController::class, 'toggleActive']);
+    
+    Route::post('reports/{report}/vote',   [ReportController::class, 'vote']);
+    Route::delete('reports/{report}/vote', [ReportController::class, 'unvote']);
     });
 });

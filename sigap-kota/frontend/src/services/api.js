@@ -57,19 +57,21 @@ export const auth = {
   logout:        ()     => post('/auth/logout', {}),
   me:            ()     => get('/auth/me'),
   register:      (body) => post('/auth/register', body),
-  updateProfile: (body) => patch('/auth/profile', body),
+  updateProfile: (body) => patch('/auth/me', body), // ← /auth/profile → /auth/me
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const reports = {
-  index:   (params)     => get('/reports', { params }),
-  show:    (id)         => get(`/reports/${id}`),
-  store:   (body)       => post('/reports', body),
-  update:  (id, body)   => patch(`/reports/${id}`, body),
-  destroy: (id)         => del(`/reports/${id}`),
-  updateStatus: (id, body) => patch(`/reports/${id}/status`, body),
-  submitFeedback: (id, body) => post(`/reports/${id}/feedback`, body),
-  reanalyze: (id) => post(`/reports/${id}/reanalyze`, {})
+  index:          (params)     => get('/reports', { params }),
+  show:           (id)         => get(`/reports/${id}`),
+  store:          (body)       => post('/reports', body),
+  update:         (id, body)   => patch(`/reports/${id}`, body),
+  destroy:        (id)         => del(`/reports/${id}`),
+  updateStatus:   (id, body)   => patch(`/reports/${id}/status`, body),
+  submitFeedback: (id, body)   => post(`/reports/${id}/feedback`, body),
+  reanalyze:      (id)         => post(`/reports/${id}/reanalyze`, {}),
+  vote:           (id)         => post(`/reports/${id}/vote`, {}),   
+  unvote:         (id)         => del(`/reports/${id}/vote`),        
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────

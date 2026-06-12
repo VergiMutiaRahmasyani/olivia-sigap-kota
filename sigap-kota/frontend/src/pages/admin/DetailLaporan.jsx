@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Share2, Printer, Zap, CheckCircle, Clock, Users, MapPin,
-  MessageCircle, Eye, EyeOff, Trash2, Tag, XCircle, Phone,
+  Printer, Zap, CheckCircle, Clock, Users, MapPin,
+  MessageCircle, Eye, EyeOff, Trash2, XCircle, Phone,
   UserCheck, RefreshCw, ChevronRight, Flag, ExternalLink, Send,
-  MoreVertical, Building2, AlertTriangle, Camera, AlertCircle, Loader
+  MoreVertical, Building2, AlertTriangle, AlertCircle, Loader
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import AdminLayout from '../../components/admin/AdminLayout'
 import { useReport } from '../../hooks/useApi'
 import { reports as reportsApi } from '../../services/api'
@@ -69,11 +71,14 @@ export default function DetailLaporan() {
 
   const { data: reportData, loading, error, refetch } = useReport(id)
 
-  const [waNumber, setWaNumber] = useState('')
-  const [waSent,   setWaSent]   = useState(false)
-  const [toast,    setToast]    = useState(null)
+  const [waNumber,       setWaNumber]       = useState('')
+  const [waSent,         setWaSent]         = useState(false)
+  const [toast,          setToast]          = useState(null)
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [markingFake,    setMarkingFake]    = useState(false)
+  const [mencetak,       setMencetak]       = useState(false)
+
+  const printRef = useRef(null)
 
   function showToast(msg) {
     setToast(msg)
@@ -96,29 +101,65 @@ export default function DetailLaporan() {
   }
 
   // Normalisasi data
-  const r         = reportData?.report ?? reportData?.data ?? reportData
-  const reportId  = r.report_number ?? r.id
-  const title     = r.title ?? r.judul ?? '(Tanpa judul)'
-  const location  = r.location ?? r.lokasi ?? '-'
-  const status    = r.status ?? 'pending'
-  const score     = r.urgency_score ?? r.score ?? '-'
-  const scoreDen  = r.urgency_max ?? 100
+  const r          = reportData?.report ?? reportData?.data ?? reportData
+  const reportId   = r.report_number ?? r.id
+  const title      = r.title ?? r.judul ?? '(Tanpa judul)'
+  const location   = r.location ?? r.lokasi ?? '-'
+  const status     = r.status ?? 'pending'
+  const score      = r.urgency_score ?? r.score ?? '-'
+  const scoreDen   = r.urgency_max ?? 100
   const reportedAt = r.created_at_human ?? r.created_at ?? '-'
-  const validations = r.validations ?? r.validasi ?? 0
-  const instansi  = r.assigned_agency?.name ?? r.instansi ?? 'Belum ditentukan'
+  const validations  = r.validations ?? r.validasi ?? 0
+  const instansi   = r.assigned_agency?.name ?? r.instansi ?? 'Belum ditentukan'
   const instansiWA = r.assigned_agency?.whatsapp ?? r.instansi_wa ?? waNumber
-  const alertSentAt = r.alert_sent_at ?? '-'
-  const similarArea = r.similar_in_area ?? r.similar_area ?? 0
-  const mapLink   = r.map_link ?? `sigap.id/map/${reportId}`
-  const comments  = r.comments ?? r.komentar ?? []
-  const images = Array.isArray(r.photos)
-  ? r.photos.map(photo => photo.url)
-  : Array.isArray(r.images)
-  ? r.images
-  : r.image
-  ? [r.image]
-  : []
+  const alertSentAt  = r.alert_sent_at ?? '-'
+  const similarArea  = r.similar_in_area ?? r.similar_area ?? 0
+  const mapLink    = r.map_link ?? `sigap.id/map/${reportId}`
+  const comments   = r.comments ?? r.komentar ?? []
+  const images     = Array.isArray(r.photos)
+    ? r.photos.map(p => p.url)
+    : Array.isArray(r.images) ? r.images
+    : r.image ? [r.image] : []
   const isCritical = status === 'kritis' || status === 'critical' || (score !== '-' && score >= 80)
+
+  // ── Cetak PDF ────────────────────────────────────────────────────────────
+  async function handleCetak() {
+    if (!printRef.current) return
+    setMencetak(true)
+    try {
+      const el     = printRef.current
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f9fafb',
+        logging: false,
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW   = pdf.internal.pageSize.getWidth()
+      const pageH   = pdf.internal.pageSize.getHeight()
+      const imgW    = pageW
+      const imgH    = (canvas.height * imgW) / canvas.width
+
+      let posY      = 0
+      let remaining = imgH
+
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'PNG', 0, -posY, imgW, imgH)
+        remaining -= pageH
+        posY      += pageH
+        if (remaining > 0) pdf.addPage()
+      }
+
+      pdf.save(`Laporan-${reportId}.pdf`)
+      showToast('PDF berhasil diunduh')
+    } catch {
+      showToast('Gagal membuat PDF, coba lagi')
+    } finally {
+      setMencetak(false)
+    }
+  }
 
   // ── Update status ────────────────────────────────────────────────────────
   async function handleUpdateStatus(newStatus) {
@@ -164,7 +205,8 @@ export default function DetailLaporan() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      {/* Wrapper dengan ref untuk di-screenshot jadi PDF */}
+      <div className="space-y-6" ref={printRef}>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-gray-400 font-display">
@@ -179,11 +221,15 @@ export default function DetailLaporan() {
         <div className="flex items-start justify-between">
           <h1 className="text-2xl font-display font-extrabold text-gray-900">Detail Laporan #{reportId}</h1>
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 text-sm font-display font-semibold border border-gray-200 rounded-xl px-4 py-2 hover:bg-gray-50 transition-colors bg-white">
-              <Share2 size={15} /> Bagikan
-            </button>
-            <button className="flex items-center gap-2 text-sm font-display font-semibold bg-primary text-white rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors">
-              <Printer size={15} /> Cetak Berkas
+            <button
+              onClick={handleCetak}
+              disabled={mencetak}
+              className="flex items-center gap-2 text-sm font-display font-semibold bg-primary text-white rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors disabled:opacity-60"
+            >
+              {mencetak
+                ? <><Loader size={15} className="animate-spin" /> Mencetak...</>
+                : <><Printer size={15} /> Cetak Berkas</>
+              }
             </button>
           </div>
         </div>
@@ -237,29 +283,30 @@ export default function DetailLaporan() {
 
               {/* Photos */}
               <div className="px-5 py-4">
-  {images.length > 0 && (
-    <>
-      <img
-        src={images[0]}
-        alt="Foto utama"
-        className="w-full h-80 rounded-xl object-cover border border-gray-200"
-      />
-
-      {images.length > 1 && (
-        <div className="grid grid-cols-4 gap-2 mt-3">
-          {images.slice(1).map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              alt={`foto-${i}`}
-              className="w-full h-24 rounded-lg object-cover border border-gray-200"
-            />
-          ))}
-        </div>
-      )}
-    </>
-  )}
-</div>
+                {images.length > 0 && (
+                  <>
+                    <img
+                      src={images[0]}
+                      alt="Foto utama"
+                      crossOrigin="anonymous"
+                      className="w-full h-80 rounded-xl object-cover border border-gray-200"
+                    />
+                    {images.length > 1 && (
+                      <div className="grid grid-cols-4 gap-2 mt-3">
+                        {images.slice(1).map((img, i) => (
+                          <img
+                            key={i}
+                            src={img}
+                            alt={`foto-${i}`}
+                            crossOrigin="anonymous"
+                            className="w-full h-24 rounded-lg object-cover border border-gray-200"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Routing card */}
@@ -329,11 +376,9 @@ export default function DetailLaporan() {
                       </div>
                       <StatusBadge status={cStatus} />
                     </div>
-
                     <p className={`text-sm leading-relaxed mb-3 ${cStatus !== 'publik' && cStatus !== 'visible' ? 'text-gray-400 italic' : 'text-gray-700'}`}>
                       {cText}
                     </p>
-
                     <div className="flex gap-2 flex-wrap">
                       {(cStatus === 'publik' || cStatus === 'visible') && (
                         <>
@@ -342,10 +387,10 @@ export default function DetailLaporan() {
                           <ActionBtn icon={XCircle} label="Tidak Relevan" sub="Beri label tidak terkait" onClick={() => showToast('Fitur label dalam pengembangan')} />
                         </>
                       )}
-                      {(cStatus === 'hidden') && (
+                      {cStatus === 'hidden' && (
                         <>
-                          <ActionBtn icon={Eye}    label="Tampilkan"   sub="Tampilkan ke publik"  onClick={() => showToast('Fitur moderasi dalam pengembangan')} />
-                          <ActionBtn icon={Trash2} label="Hapus"       sub="Hapus dari sistem"    variant="danger" onClick={() => showToast('Fitur hapus dalam pengembangan')} />
+                          <ActionBtn icon={Eye}    label="Tampilkan" sub="Tampilkan ke publik" onClick={() => showToast('Fitur moderasi dalam pengembangan')} />
+                          <ActionBtn icon={Trash2} label="Hapus"     sub="Hapus dari sistem"   variant="danger" onClick={() => showToast('Fitur hapus dalam pengembangan')} />
                         </>
                       )}
                     </div>
@@ -379,12 +424,12 @@ export default function DetailLaporan() {
                     <AlertTriangle size={11} /> LAPORAN PRIORITAS — SIGAP KOTA
                   </p>
                   {[
-                    ['Skor urgensi',       `${score}/${scoreDen}`],
-                    ['Kategori',           r.category?.name ?? '-'],
-                    ['Lokasi',             location],
-                    ['Waktu',              reportedAt],
-                    ['Laporan serupa',     String(similarArea)],
-                    ['Validasi warga',     String(validations)],
+                    ['Skor urgensi',   `${score}/${scoreDen}`],
+                    ['Kategori',       r.category?.name ?? '-'],
+                    ['Lokasi',         location],
+                    ['Waktu',          reportedAt],
+                    ['Laporan serupa', String(similarArea)],
+                    ['Validasi warga', String(validations)],
                   ].map(([k, v]) => (
                     <div key={k} className="flex gap-2 text-[11px] mb-0.5">
                       <span className="text-gray-400 w-28 shrink-0">{k}:</span>
@@ -418,10 +463,10 @@ export default function DetailLaporan() {
                 <p className="text-[10px] font-display font-extrabold text-gray-400 uppercase tracking-widest">Navigasi Admin</p>
               </div>
               {[
-                { icon: RefreshCw,  label: 'Tandai Sedang Diproses', action: () => handleUpdateStatus('diproses') },
-                { icon: CheckCircle,label: 'Tandai Selesai',         action: () => handleUpdateStatus('selesai') },
-                { icon: UserCheck,  label: 'Delegasi Manual',        action: () => showToast('Delegasi manual dalam pengembangan') },
-                { icon: Phone,      label: 'Hubungi Instansi',       action: () => kirimWA() },
+                { icon: RefreshCw,   label: 'Tandai Sedang Diproses', action: () => handleUpdateStatus('diproses') },
+                { icon: CheckCircle, label: 'Tandai Selesai',         action: () => handleUpdateStatus('selesai')  },
+                { icon: UserCheck,   label: 'Delegasi Manual',        action: () => showToast('Delegasi manual dalam pengembangan') },
+                { icon: Phone,       label: 'Hubungi Instansi',       action: () => kirimWA() },
               ].map(({ icon: Icon, label, action }) => (
                 <button
                   key={label}
@@ -430,7 +475,10 @@ export default function DetailLaporan() {
                   disabled={updatingStatus}
                 >
                   <span className="flex items-center gap-2.5 text-sm font-display font-semibold text-gray-700">
-                    {updatingStatus ? <Loader size={16} className="animate-spin text-gray-400" /> : <Icon size={16} className="text-gray-500" />}
+                    {updatingStatus
+                      ? <Loader size={16} className="animate-spin text-gray-400" />
+                      : <Icon size={16} className="text-gray-500" />
+                    }
                     {label}
                   </span>
                   <ChevronRight size={14} className="text-gray-400" />

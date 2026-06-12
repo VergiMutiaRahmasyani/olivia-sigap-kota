@@ -8,13 +8,11 @@ import LocationPickerMap from '../../components/common/LocationPickerMap'
 
 const STEPS = ['Pilih Kategori', 'Unggah Bukti', 'Lokasi Presisi', 'Detail Laporan']
 
-// Icon fallback untuk kategori dari backend
 const CATEGORY_ICONS = {
   jalan: Road, banjir: Home, lampu: Lightbulb, keamanan: Shield,
   road: Road, flood: Home, light: Lightbulb, safety: Shield,
 }
 
-// ── Step 1 ───────────────────────────────────────────────────────────────────
 function StepKategori({ selected, onSelect, categoriesData, loadingCategories }) {
   if (loadingCategories) {
     return (
@@ -60,8 +58,6 @@ function StepKategori({ selected, onSelect, categoriesData, loadingCategories })
   )
 }
 
-// ── Step 2 ───────────────────────────────────────────────────────────────────
-// Tambahkan props: aiResult, loadingAi, onAnalyze
 function StepUnggah({ files, onFiles, aiResult, loadingAi, onAnalyze }) {
   
   const handleFileChange = (e) => {
@@ -105,7 +101,6 @@ function StepUnggah({ files, onFiles, aiResult, loadingAi, onAnalyze }) {
   )
 }
 
-// ── Step 3 ───────────────────────────────────────────────────────────────────
 function StepLokasi({ location, onChange }) {
   const handleGPS = () => {
     if (!navigator.geolocation) return
@@ -155,7 +150,6 @@ function StepLokasi({ location, onChange }) {
   )
 }
 
-// ── Step 4 ───────────────────────────────────────────────────────────────────
 function StepDetail({ detail, onChange }) {
   return (
     <div>
@@ -202,7 +196,6 @@ function StepDetail({ detail, onChange }) {
   )
 }
 
-// ── Main wizard ───────────────────────────────────────────────────────────────
 export default function BuatLaporan() {
   const [step, setStep]         = useState(0)
   const [category, setCategory] = useState('')
@@ -264,7 +257,6 @@ export default function BuatLaporan() {
       return
     }
 
-    // ── Submit ──
     setSubmitting(true)
     setSubmitError(null)
 
@@ -275,7 +267,6 @@ export default function BuatLaporan() {
       formData.append('title', detail.title)
       formData.append('description', detail.desc)
 
-      // WAJIB sesuai backend Laravel
       formData.append('location_address', location.address)
       formData.append('kelurahan', location.kelurahan)
       formData.append('kecamatan', location.kecamatan)
@@ -290,7 +281,6 @@ export default function BuatLaporan() {
         formData.append('longitude', location.lng)
       }
 
-      // WAJIB sesuai backend Laravel
       files.forEach(file => {
         formData.append('photos[]', file)
       })
