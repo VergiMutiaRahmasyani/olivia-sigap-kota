@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class ReportController extends Controller
 {
@@ -24,15 +25,15 @@ class ReportController extends Controller
         $query = Report::with(['user:id,name,phone', 'category', 'primaryPhoto'])
                        ->latest();
 
-        // Warga hanya melihat laporannya sendiri
+        
         if ($user->isWarga()) {
             $query->forWarga($user->id);
         }
 
-        // Filter opsional
+        
         if ($request->filled('status'))    $query->byStatus($request->status);
         if ($request->filled('severity'))  $query->bySeverity($request->severity);
-        if ($request->filled('category'))  $query->where('category_id', $request->category);
+        if ($request->filled('category_id'))  $query->where('category_id', $request->category_id);
         if ($request->filled('kecamatan')) $query->where('kecamatan', $request->kecamatan);
         if ($request->filled('search')) {
             $q = $request->search;
@@ -42,8 +43,15 @@ class ReportController extends Controller
         }
 
         $reports = $query->paginate($request->get('per_page', 15));
+        $responseData = $reports->toArray();
 
-        return response()->json($reports);
+        $responseData['stats'] = [
+            'active_reports' => Report::where('status', '!=', 'selesai')->count(),
+            'resolved_today' => Report::where('status', 'selesai')
+                                    ->where('completed_at', '>=', now()->subDay())
+                                    ->count(),
+        ];
+        return response()->json($responseData);
     }
 
     // ─── POST /reports ───────────────────────────────────────────
@@ -71,7 +79,7 @@ class ReportController extends Controller
                 'status'        => 'menunggu',
             ]);
 
-            // Simpan foto
+            
             $photoUrls = [];
             foreach ($request->file('photos') as $i => $photo) {
                 $path = $photo->store("reports/{$report->id}", 'public');
@@ -86,7 +94,7 @@ class ReportController extends Controller
 
             DB::commit();
 
-            // Jalankan analisis AI (async-friendly: bisa diganti dengan Job/Queue)
+            
             $this->runAiAnalysis($report, $photoUrls);
 
             return response()->json([
@@ -100,7 +108,6 @@ class ReportController extends Controller
         }
     }
 
-    // ─── GET /reports/{id} ───────────────────────────────────────
     public function show(Request $request, Report $report): JsonResponse
     {
         $user = $request->user();
@@ -114,7 +121,6 @@ class ReportController extends Controller
         );
     }
 
-    // ─── PATCH /reports/{id}/status (Admin/Petugas) ──────────────
     public function updateStatus(Request $request, Report $report): JsonResponse
     {
         $user = $request->user();
@@ -138,7 +144,6 @@ class ReportController extends Controller
             'completed_at' => $data['status'] === 'selesai'      ? now() : $report->completed_at,
         ]);
 
-        // Catat riwayat status
         ReportStatusHistory::create([
             'report_id'  => $report->id,
             'changed_by' => $user->id,
@@ -147,7 +152,6 @@ class ReportController extends Controller
             'notes'      => $data['notes'] ?? null,
         ]);
 
-        // Kirim notifikasi ke pelapor
         $report->user->notify(new ReportStatusUpdated($report));
 
         return response()->json([
@@ -156,7 +160,6 @@ class ReportController extends Controller
         ]);
     }
 
-    // ─── POST /reports/{id}/feedback (Warga) ────────────────────
     public function submitFeedback(Request $request, Report $report): JsonResponse
     {
         $user = $request->user();
@@ -179,7 +182,6 @@ class ReportController extends Controller
         return response()->json(['message' => 'Terima kasih atas feedback Anda!']);
     }
 
-    // ─── POST /reports/{id}/analyze (Admin - re-trigger AI) ──────
     public function reanalyze(Request $request, Report $report): JsonResponse
     {
         if (!$request->user()->isAdmin()) {
@@ -195,19 +197,34 @@ class ReportController extends Controller
         ]);
     }
 
-    // ─── Private Helpers ─────────────────────────────────────────
     private function runAiAnalysis(Report $report, array $photoUrls): void
-    {
-        try {
-            $result = $this->aiService->analyze($report->load('category'), $photoUrls);
+{
+    try {
+        $firstPhotoPath = $report->photos()->first()->path;
+        $absolutePath = storage_path('app/public/' . $firstPhotoPath);
+
+        if (!file_exists($absolutePath)) {
+            \Log::error("File tidak ditemukan: " . $absolutePath);
+            return;
+        }
+
+        $response = Http::attach(
+            'image',
+            file_get_contents($absolutePath),
+            basename($absolutePath)
+        )->post('http://127.0.0.1:5000/predict');
+
+        if ($response->successful()) {
+            $aiData = $response->json();
+            
             $report->update([
-                'severity'       => $result['severity'],
-                'severity_score' => $result['score'],
-                'ai_analysis'    => $result['analysis'],
+                'severity'       => $aiData['severity'],
+                'severity_score' => $aiData['score'],
                 'ai_analyzed'    => true,
             ]);
-        } catch (\Exception $e) {
-            \Log::warning("AI analysis failed for report #{$report->id}: " . $e->getMessage());
         }
+    } catch (\Exception $e) {
+        \Log::warning("AI analysis failed for report #{$report->id}: " . $e->getMessage());
     }
+}
 }

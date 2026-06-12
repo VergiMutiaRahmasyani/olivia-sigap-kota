@@ -61,43 +61,44 @@ function StepKategori({ selected, onSelect, categoriesData, loadingCategories })
 }
 
 // ── Step 2 ───────────────────────────────────────────────────────────────────
-function StepUnggah({ files, onFiles }) {
-  const handleDrop = e => {
-    e.preventDefault()
-    onFiles([...files, ...Array.from(e.dataTransfer.files)])
-  }
+// Tambahkan props: aiResult, loadingAi, onAnalyze
+function StepUnggah({ files, onFiles, aiResult, loadingAi, onAnalyze }) {
+  
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    onFiles([...files, ...selectedFiles]);
+    
+    // Kirim foto pertama ke AI untuk dianalisis
+    if (selectedFiles.length > 0) {
+      onAnalyze(selectedFiles[0]);
+    }
+  };
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-display font-bold text-gray-900 mb-1">Unggah Bukti</h2>
-      <p className="text-sm text-gray-500 mb-6">Tambahkan foto atau video sebagai bukti laporan.</p>
-
-      <div
-        onDrop={handleDrop}
-        onDragOver={e => e.preventDefault()}
-        className="border-2 border-dashed border-gray-200 rounded-2xl p-8 sm:p-12 text-center hover:border-primary transition-colors cursor-pointer"
+      <h2 className="text-xl font-bold mb-1">Unggah Bukti</h2>
+      
+      {/* Area Upload */}
+      <div 
+        className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer ${loadingAi ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}
         onClick={() => document.getElementById('file-input').click()}
       >
-        <Upload size={28} className="text-gray-300 mx-auto mb-3" />
-        <p className="text-sm font-display font-semibold text-gray-600">Seret & lepas atau klik untuk unggah</p>
-        <p className="text-xs text-gray-400 mt-1">PNG, JPG, MP4 — maks. 10MB</p>
-        <input
-          id="file-input"
-          type="file"
-          multiple
-          accept="image/*"
-          className="hidden"
-          onChange={e => onFiles([...files, ...Array.from(e.target.files)])}
-        />
+        {loadingAi ? (
+          <p className="text-primary font-bold">Sedang Menganalisis Gambar dengan AI...</p>
+        ) : (
+          <>
+            <Upload size={28} className="text-gray-300 mx-auto mb-3" />
+            <p>Klik untuk unggah</p>
+          </>
+        )}
+        <input id="file-input" type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
       </div>
 
-      {files.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          {files.map((f, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-gray-100 overflow-hidden">
-              <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-            </div>
-          ))}
+      {/* Tampilkan Hasil AI jika ada */}
+      {aiResult && (
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <p className="text-sm font-bold text-green-800">Hasil Deteksi AI:</p>
+          <p className="text-xs">Tingkat Kerusakan: {aiResult.severity.toUpperCase()} | Score: {aiResult.score}</p>
         </div>
       )}
     </div>
@@ -212,6 +213,8 @@ export default function BuatLaporan() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [createdId, setCreatedId]   = useState(null)
+  const [aiResult, setAiResult] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   const { data: categoriesData, loading: loadingCategories } = useCategories()
 
@@ -223,6 +226,37 @@ export default function BuatLaporan() {
     detail.desc.length >= 20 &&
     detail.urgency !== '',
   ]
+  const handleAnalyze = async (file) => {
+  setLoadingAi(true);
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('http://127.0.0.1:5000/predict', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    setAiResult(data);
+
+    const urgencyMap = {
+      'parah': 'kritikal',   // Jika AI bilang parah, set ke kritikal
+      'sedang': 'sedang',    // Jika AI bilang sedang, set ke sedang
+      'ringan': 'rendah'     // Jika AI bilang ringan, set ke rendah
+    };
+    
+    // Opsional: Isi otomatis detail laporan berdasarkan AI
+    setDetail(prev => ({
+      ...prev,
+      // desc: `Terdeteksi ${data.potholes} lubang, ${data.cracks} retakan.`,
+      urgency: urgencyMap[data.severity]  || ''
+    }));
+  } catch (e) {
+    console.error("AI Analysis Failed", e);
+  } finally {
+    setLoadingAi(false);
+  }
+};
 
   const handleNext = async () => {
     if (step < STEPS.length - 1) {
@@ -374,7 +408,7 @@ export default function BuatLaporan() {
               loadingCategories={loadingCategories}
             />
           )}
-          {step === 1 && <StepUnggah files={files} onFiles={setFiles} />}
+          {step === 1 && <StepUnggah files={files} onFiles={setFiles} aiResult={aiResult} loadingAi={loadingAi} onAnalyze={handleAnalyze} />}
           {step === 2 && <StepLokasi location={location} onChange={setLocation} />}
           {step === 3 && <StepDetail detail={detail} onChange={setDetail} />}
 

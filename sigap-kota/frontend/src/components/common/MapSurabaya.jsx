@@ -56,6 +56,7 @@ export default function MapSurabaya({ reports = [] }) {
     <MapContainer
       center={SURABAYA_CENTER}
       zoom={13}
+      zoomControl={false}
       minZoom={11}
       maxZoom={18}
       maxBounds={[
