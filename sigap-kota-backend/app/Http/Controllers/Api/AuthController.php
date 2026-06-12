@@ -15,14 +15,14 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users',
-            'phone'     => 'required|string|max:15',
-            'nik'       => 'nullable|string|size:16|unique:users',
-            'address'   => 'nullable|string',
-            'kelurahan' => 'nullable|string',
-            'kecamatan' => 'nullable|string',
-            'password'  => ['required', 'confirmed', Password::min(8)],
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users',
+            'phone'    => 'required|string|max:15',
+            'nik'      => 'nullable|string|size:16|unique:users',
+            'address'  => 'nullable|string',
+            'kelurahan'=> 'nullable|string',
+            'kecamatan'=> 'nullable|string',
+            'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $user  = User::create($data);
@@ -72,43 +72,28 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        $totalReports    = $user->reports()->count();
-        $completedReports = $user->reports()->where('status', 'selesai')->count();
-        $totalVotes      = ReportVote::whereIn(
-                            'report_id',
-                            $user->reports()->pluck('id')
-                        )->count();
-
-        return response()->json([
-            'user' => array_merge($user->toArray(), [
-                'total_reports'     => $totalReports,
-                'completed_reports' => $completedReports,
-                'total_votes'       => $totalVotes,
-                'xp_to_next_level'  => $user->xpToNextLevel(),
-                'xp_progress'       => $user->xpProgress(),
-            ]),
-        ]);
+        return response()->json($request->user()->load('reports'));
     }
+
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $data = $request->validate([
             'name'      => 'sometimes|string|max:255',
-            'email'     => 'sometimes|email|unique:users,email,' . $user->id,
-            'phone'     => 'sometimes|nullable|string|max:15',
-            'kelurahan' => 'sometimes|nullable|string',
-            'kecamatan' => 'sometimes|nullable|string',
-            'bio'       => 'sometimes|nullable|string|max:160',
+            'phone'     => 'sometimes|string|max:15',
+            'address'   => 'sometimes|string',
+            'kelurahan' => 'sometimes|string',
+            'kecamatan' => 'sometimes|string',
+            'avatar'    => 'sometimes|image|max:2048',
         ]);
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
 
         $user->update($data);
 
-        return response()->json([
-            'message' => 'Profil diperbarui.',
-            'user'    => $this->me($request)->getData()->user,
-        ]);
+        return response()->json(['message' => 'Profil diperbarui.', 'user' => $user]);
     }
 }

@@ -1,0 +1,18 @@
+[33m6671f4a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: reset: moving to 6671f4a
+[33m0bf8cf6[m HEAD@{1}: commit: Fix merge conflicts manual
+[33m6671f4a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{2}: checkout: moving from profile to main
+[33maa4e071[m[33m ([m[1;31morigin/profile[m[33m, [m[1;32mprofile[m[33m)[m HEAD@{3}: reset: moving to HEAD
+[33maa4e071[m[33m ([m[1;31morigin/profile[m[33m, [m[1;32mprofile[m[33m)[m HEAD@{4}: checkout: moving from main to profile
+[33m6671f4a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{5}: reset: moving to HEAD
+[33m6671f4a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{6}: pull: Fast-forward
+[33mf554bf3[m HEAD@{7}: checkout: moving from profile to main
+[33maa4e071[m[33m ([m[1;31morigin/profile[m[33m, [m[1;32mprofile[m[33m)[m HEAD@{8}: commit: tambahan
+[33m6671f4a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{9}: reset: moving to HEAD
+[33m6671f4a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{10}: checkout: moving from main to profile
+[33mf554bf3[m HEAD@{11}: reset: moving to HEAD
+[33mf554bf3[m HEAD@{12}: commit: perbaikanfoto
+[33m5f6e17a[m HEAD@{13}: commit: feat: integrasi leaflet peta surabaya, fix auth api, tambah show/hide password
+[33m3547d6a[m HEAD@{14}: commit: backend
+[33m046f648[m HEAD@{15}: commit: Add frontend and backend project
+[33m15a7189[m HEAD@{16}: Branch: renamed refs/heads/master to refs/heads/main
+[33m15a7189[m HEAD@{18}: commit (initial): first commit

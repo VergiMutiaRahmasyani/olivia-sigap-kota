@@ -5,6 +5,12 @@ import AdminLayout from '../../components/admin/AdminLayout'
 import { reports as reportsApi } from '../../services/api'
 import { useDashboardStats, useCategories } from '../../hooks/useApi'
 
+const getNormalizedScore = (r) => {
+  const rawScore = r.severity_score ?? r.urgency_score ?? r.score ?? 0;
+  // Jika dari DB berupa 0-100, bagi 10. Jika sudah 0-10, biarkan.
+  return rawScore > 10 ? rawScore / 10 : rawScore;
+}
+
 const LEVEL_COLOR = {
   kritis: 'text-red-500', critical: 'text-red-500',
   tinggi: 'text-orange-500', high: 'text-orange-500',
@@ -45,8 +51,7 @@ function getStatusStyle(s) { return STATUS_STYLE[s] ?? 'bg-gray-100 text-gray-60
 function getStatusLabel(s) { return STATUS_LABEL[s] ?? s?.toUpperCase() ?? '-' }
 
 function getLevelColor(r) {
-  if (r.urgency_level) return LEVEL_COLOR[r.urgency_level] ?? 'text-gray-400'
-  const score = r.urgency_score ?? r.score ?? 0
+  const score = getNormalizedScore(r);
   if (score >= 8)  return 'text-red-500'
   if (score >= 5)  return 'text-orange-500'
   if (score >= 3)  return 'text-green-500'
@@ -54,8 +59,7 @@ function getLevelColor(r) {
 }
 
 function getBarColor(r) {
-  if (r.urgency_level) return LEVEL_BAR[r.urgency_level] ?? 'bg-gray-300'
-  const score = r.urgency_score ?? r.score ?? 0
+  const score = getNormalizedScore(r);
   if (score >= 8)  return 'bg-red-500'
   if (score >= 5)  return 'bg-orange-400'
   if (score >= 3)  return 'bg-green-500'
@@ -63,19 +67,16 @@ function getBarColor(r) {
 }
 
 function getBarHeight(r) {
-  const level = r.urgency_level
-  if (level) return LEVEL_HEIGHT[level] ?? '22%'
-  const score = r.urgency_score ?? r.score ?? 0
-  return `${Math.max(10, Math.min(100, score * 10))}%`
+  const score = getNormalizedScore(r);
+  return `${Math.max(10, Math.min(100, score * 10))}%`;
 }
 
 function getLevelLabel(r) {
-  if (r.urgency_level) return r.urgency_level.toUpperCase()
-  const score = r.urgency_score ?? r.score ?? 0
-  if (score >= 8) return 'KRITIS'
-  if (score >= 5) return 'TINGGI'
-  if (score >= 3) return 'SEDANG'
-  return 'RENDAH'
+  const score = getNormalizedScore(r);
+  if (score >= 8) return 'KRITIS';
+  if (score >= 5) return 'TINGGI';
+  if (score >= 3) return 'SEDANG';
+  return 'RENDAH';
 }
 
 function ScoreBar({ report }) {
@@ -144,19 +145,21 @@ export default function KelolaLaporan() {
     if (category)        params.category_id = category
 
     reportsApi.index(params)
-      .then(res => {
-        const list = Array.isArray(res) ? res : (res?.data ?? [])
-        setReportList(list)
-        setMeta(res?.meta ?? res?.pagination ?? null)
+  .then(res => {
+    // res.data adalah tempat Laravel meletakkan body response JSON
+    const responseData = res.data;
+        setReportList(responseData?.data ?? responseData ?? []);
+        setMeta(responseData?.meta ?? null);
       })
-      .catch(err => setError(err.message))
+    .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [page, debouncedSearch, category, sort])
+  }, [page, debouncedSearch, category, sort]);
+useEffect(() => { 
+    fetchReports(); 
+  }, [fetchReports]);
 
-  useEffect(() => { fetchReports() }, [fetchReports])
-
-  const totalLaporan   = statsData?.total_reports ?? meta?.total ?? '-'
-  const highUrgency    = statsData?.high_urgency_count ?? '-'
+  const totalLaporan = meta?.total ?? reportList.length ?? 0;
+  const highUrgency = reportList.filter(r => r.severity === 'parah' || r.severity === 'critical').length;
   const totalPages     = meta?.last_page ?? meta?.total_pages ?? 1
   const totalShowing   = meta?.total ?? reportList.length
 
@@ -261,10 +264,16 @@ export default function KelolaLaporan() {
 
           {/* Rows */}
           {!loadingReports && reportList.map((r, i) => {
+            console.log("Struktur Lengkap Laporan:", JSON.stringify(r, null, 2));
             const reportId  = r.report_number ?? r.id
             const catName   = r.category?.name ?? r.kategori ?? r.category_name ?? '-'
-            const location  = r.location ?? r.lokasi ?? '-'
-            const time      = r.created_at_human ?? r.time ?? r.created_at ?? ''
+            const location  = r.location_address ?? 'Lokasi tidak tersedia'
+            const time      = r.created_at 
+    ? new Date(r.created_at).toLocaleString('id-ID', { 
+        day: '2-digit', month: '2-digit', year: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      }) 
+    : '-'
             const score     = r.urgency_score ?? r.score ?? '-'
             const status    = r.status ?? 'pending'
             const isDone    = status === 'selesai' || status === 'resolved'
@@ -280,9 +289,9 @@ export default function KelolaLaporan() {
                 <div className="flex items-center gap-3">
                   <ScoreBar report={r} />
                   <div>
-                    <p className={`text-lg font-display font-extrabold leading-none ${getLevelColor(r)}`}>
+                    {/* <p className={`text-lg font-display font-extrabold leading-none ${getLevelColor(r)}`}>
                       {score}<span className="text-xs text-gray-400 font-normal">/10</span>
-                    </p>
+                    </p> */}
                     <p className={`text-[10px] font-display font-bold uppercase tracking-wider mt-0.5 ${getLevelColor(r)}`}>
                       {getLevelLabel(r)}
                     </p>

@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\ReportPhoto;
 use App\Models\ReportStatusHistory;
-use App\Models\ReportVote;
-use App\Models\User;
 use App\Notifications\ReportStatusUpdated;
 use App\Services\AiSeverityService;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +25,12 @@ class ReportController extends Controller
         $query = Report::with(['user:id,name,phone', 'category', 'primaryPhoto'])
                        ->latest();
 
+        
+        if ($user && $user->isWarga()) {
+            $query->forWarga($user->id);
+        }
+
+        
         if ($request->filled('status'))    $query->byStatus($request->status);
         if ($request->filled('severity'))  $query->bySeverity($request->severity);
         if ($request->filled('category_id'))  $query->where('category_id', $request->category_id);
@@ -46,6 +50,10 @@ class ReportController extends Controller
             'resolved_today' => Report::where('status', 'selesai')
                                     ->where('completed_at', '>=', now()->subDay())
                                     ->count(),
+        ];
+
+        $responseData['custom_stats'] = [
+            'kritis_count' => Report::where('severity', 'kritis')->orWhere('severity', 'parah')->count(),
         ];
         return response()->json($responseData);
     }
@@ -88,11 +96,9 @@ class ReportController extends Controller
                 $photoUrls[] = Storage::disk('public')->url($path);
             }
 
-            // +10 XP untuk membuat laporan
-            $request->user()->addXp(User::XP_BUAT);
-
             DB::commit();
 
+            
             $this->runAiAnalysis($report, $photoUrls);
 
             return response()->json([
@@ -134,11 +140,6 @@ class ReportController extends Controller
 
         $oldStatus = $report->status;
 
-        // +25 XP ke pembuat laporan saat status berubah jadi selesai
-        if ($data['status'] === 'selesai' && $oldStatus !== 'selesai') {
-            $report->user->addXp(User::XP_SELESAI);
-        }
-
         $report->update([
             'status'      => $data['status'],
             'assigned_to' => $data['assigned_to'] ?? $report->assigned_to,
@@ -160,48 +161,6 @@ class ReportController extends Controller
         return response()->json([
             'message' => 'Status laporan diperbarui.',
             'report'  => $report->fresh(['category', 'statusHistories.changedBy:id,name']),
-        ]);
-    }
-
-    // ─── POST /reports/{id}/vote (Warga) ─────────────────────────
-    public function vote(Request $request, Report $report): JsonResponse
-    {
-        $user = $request->user();
-
-        if ($report->user_id === $user->id) {
-            return response()->json(['message' => 'Tidak bisa mendukung laporan sendiri.'], 403);
-        }
-
-        if ($report->votes()->where('user_id', $user->id)->exists()) {
-            return response()->json(['message' => 'Sudah memberikan dukungan.'], 409);
-        }
-
-        ReportVote::create(['report_id' => $report->id, 'user_id' => $user->id]);
-
-        // +2 XP ke pembuat laporan
-        $report->user->addXp(User::XP_VOTE);
-
-        return response()->json([
-            'message'     => 'Dukungan diberikan.',
-            'votes_count' => $report->votes()->count(),
-        ]);
-    }
-
-    // ─── DELETE /reports/{id}/vote (Warga) ───────────────────────
-    public function unvote(Request $request, Report $report): JsonResponse
-    {
-        $deleted = $report->votes()->where('user_id', $request->user()->id)->delete();
-
-        if (!$deleted) {
-            return response()->json(['message' => 'Belum memberikan dukungan.'], 404);
-        }
-
-        // Kurangi XP pembuat laporan
-        $report->user->addXp(-User::XP_VOTE);
-
-        return response()->json([
-            'message'     => 'Dukungan dibatalkan.',
-            'votes_count' => $report->votes()->count(),
         ]);
     }
 
@@ -271,5 +230,5 @@ class ReportController extends Controller
     } catch (\Exception $e) {
         \Log::warning("AI analysis failed for report #{$report->id}: " . $e->getMessage());
     }
-    }
+}
 }

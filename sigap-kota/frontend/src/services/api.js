@@ -57,21 +57,19 @@ export const auth = {
   logout:        ()     => post('/auth/logout', {}),
   me:            ()     => get('/auth/me'),
   register:      (body) => post('/auth/register', body),
-  updateProfile: (body) => patch('/auth/me', body), // ← /auth/profile → /auth/me
+  updateProfile: (body) => patch('/auth/profile', body),
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const reports = {
-  index:          (params)     => get('/reports', { params }),
-  show:           (id)         => get(`/reports/${id}`),
-  store:          (body)       => post('/reports', body),
-  update:         (id, body)   => patch(`/reports/${id}`, body),
-  destroy:        (id)         => del(`/reports/${id}`),
-  updateStatus:   (id, body)   => patch(`/reports/${id}/status`, body),
-  submitFeedback: (id, body)   => post(`/reports/${id}/feedback`, body),
-  reanalyze:      (id)         => post(`/reports/${id}/reanalyze`, {}),
-  vote:           (id)         => post(`/reports/${id}/vote`, {}),   
-  unvote:         (id)         => del(`/reports/${id}/vote`),        
+  index:   (params)     => get('/reports', { params }),
+  show:    (id)         => get(`/reports/${id}`),
+  store:   (body)       => post('/reports', body),
+  update:  (id, body)   => patch(`/reports/${id}`, body),
+  destroy: (id)         => del(`/reports/${id}`),
+  updateStatus: (id, body) => patch(`/reports/${id}/status`, body),
+  submitFeedback: (id, body) => post(`/reports/${id}/feedback`, body),
+  reanalyze: (id) => post(`/reports/${id}/reanalyze`, {})
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -101,3 +99,25 @@ export const instansi = {
   update:  (id, body) => patch(`/instansi/${id}`, body),
   destroy: (id)       => del(`/instansi/${id}`),
 }
+
+// ── Wilayah urgensi (admin) ───────────────────────────────────────────────────
+export const wilayah = {
+  urgensi: () => get('/admin/wilayah/urgensi'),
+}
+
+// ── Admin reports ─────────────────────────────────────────────────────────────
+export const adminReports = {
+  index:  (params) => get('/admin/reports', { params }),
+  stats:  ()       => get('/dashboard'),
+  show:   (id)     => get(`/reports/${id}`),
+}
+
+const api = {
+  get: (path, opts) => get(path, opts),
+  post: (path, body, opts) => post(path, body, opts),
+  patch: (path, body, opts) => patch(path, body, opts),
+  put: (path, body, opts) => put(path, body, opts),
+  delete: (path, opts) => del(path, opts),
+}
+
+export default api
